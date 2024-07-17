@@ -1,12 +1,20 @@
 // stdlib
-#include <filesystem>
+
 #include <fstream>
 
-// auris.can --> private
+#if defined(__GNUC__) && __GNUC__ < 8
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#else
+#include <filesystem>
+namespace fs = std::filesystem;
+#endif
+
+
+// uni.can
 #include "common_sysfs.h"
 
 using namespace std::string_literals;
-
 
 
 namespace Auris::CAN {
@@ -15,12 +23,13 @@ namespace Auris::CAN {
     //
 
     bool SysFs::IsClassExists(const std::string &className, const std::string &elementName) {
-        return std::filesystem::exists("/sys/class/"s + className + "/" + elementName + "/");
+        return fs::exists("/sys/class/"s + className + "/" + elementName + "/");
     }
 
-    int SysFs::GetClassProperty(const std::string &className, const std::string &elementName, const std::string &propertyName) {
+    int SysFs::GetClassProperty(const std::string &className, const std::string &elementName,
+                                const std::string &propertyName) {
         auto filepath = "/sys/class/"s + className + "/" + elementName + "/" + propertyName;
-        if (std::filesystem::exists(filepath)) {
+        if (fs::exists(filepath)) {
             std::ifstream file(filepath);
             std::string file_content((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
 
