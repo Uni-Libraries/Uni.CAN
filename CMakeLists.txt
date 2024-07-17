@@ -30,10 +30,14 @@ if(WIN32)
     set_target_properties(chai PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/include")
 
 	if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
-		set_target_properties(chai PROPERTIES IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/bin64/chai.dll")
+		set_target_properties(chai PROPERTIES IMPORTED_LOCATION
+			"${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/bin64/chai.dll;${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/bin64/ftd2xx.dll"
+		)
 		set_target_properties(chai PROPERTIES IMPORTED_IMPLIB   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/lib64/chai.lib")
 	else()
-		set_target_properties(chai PROPERTIES IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/bin32/chai.dll")
+		set_target_properties(chai PROPERTIES IMPORTED_LOCATION
+			"${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/bin32/chai.dll;${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/bin32/ftd2xx.dll"
+		)
 		set_target_properties(chai PROPERTIES IMPORTED_IMPLIB   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/lib32/chai.lib")
 	endif()
 endif()
