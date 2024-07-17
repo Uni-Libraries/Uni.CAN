@@ -27,6 +27,7 @@ typedef struct {
     char device_manufacturer[UNI_CAN_DEVINFO_FIELDLEN];
     char device_model[UNI_CAN_DEVINFO_FIELDLEN];
     char device_sn[UNI_CAN_DEVINFO_FIELDLEN];
+    char device_provider[UNI_CAN_DEVINFO_FIELDLEN];
     size_t device_index;
     uint32_t device_chancnt;
 } uni_can_devinfo_t;

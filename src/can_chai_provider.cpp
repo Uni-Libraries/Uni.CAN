@@ -30,12 +30,17 @@ namespace Uni::CAN {
                 auto *devinfo = new uni_can_devinfo_t;
                 strcpy(devinfo->device_manufacturer, binfo.manufact);
                 strcpy(devinfo->device_model, binfo.name);
+                strcpy(devinfo->device_provider, GetProviderName());
                 devinfo->device_index = binfo.brdnum;
                 devinfo->device_chancnt = 1;
                 result.push_back(std::shared_ptr<uni_can_devinfo_t>(devinfo));
             }
         }
         return result;
+    }
+
+    const char * CanProviderChai::GetProviderName() const {
+        return "chai";
     }
 
     bool CanProviderChai::IsInited() { return _inited; }

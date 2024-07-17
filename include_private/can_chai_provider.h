@@ -19,6 +19,8 @@ namespace Uni::CAN {
 
         std::vector<std::shared_ptr<uni_can_devinfo_t> > GetDeviceInfo() override;
 
+        [[nodiscard]] const char* GetProviderName() const override;
+
     private:
         bool _inited = false;
     };

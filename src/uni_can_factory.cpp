@@ -66,7 +66,19 @@ bool uni_can_factory_get_info(uni_can_devinfo_t *info, size_t index) {
 
 
 void *uni_can_factory_create_channel(uni_can_devinfo_t *info, size_t channelidx, uint32_t baudrate) {
+    if(!info) {
+        return nullptr;
+    }
+
+    if(channelidx >= info->device_chancnt) {
+        return nullptr;
+    }
+
     for (auto &provider: g_providers) {
+        if(strcmp(provider->GetProviderName(), info->device_provider) != 0) {
+            continue;
+        }
+
         auto result = provider->CreateChannel(info, channelidx, baudrate);
         if (result) {
             return result;

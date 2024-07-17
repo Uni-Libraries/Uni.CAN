@@ -19,5 +19,7 @@ namespace Uni::CAN {
         virtual ICanChannel *CreateChannel(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate) = 0;
 
         virtual std::vector<std::shared_ptr<uni_can_devinfo_t> > GetDeviceInfo() = 0;
+
+        [[nodiscard]] virtual const char* GetProviderName() const = 0;
     };
 }
