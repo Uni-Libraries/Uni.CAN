@@ -46,7 +46,7 @@ bool uni_can_j1939_msgdesc_signal_set(uni_can_message_t *msg, const uni_can_j193
         while (desc->signal[sig_idx] != NULL) {
             if (desc->signal[sig_idx]->id == signal_id) {
                 if ((offset % 8 == 0) && desc->signal[sig_idx]->length == 16) {
-                    uint16_t value_u16 = value / desc->signal[sig_idx]->scale;
+                    uint16_t value_u16 = (value - desc->signal[sig_idx]->offset) / desc->signal[sig_idx]->scale;
                     memcpy(&msg->data[offset / 8], &value_u16, sizeof(uint16_t));
                     result = true;
                 }
