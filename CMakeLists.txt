@@ -2,12 +2,6 @@ cmake_minimum_required(VERSION 3.21)
 
 project(uni.can)
 
-#
-# UNI common
-#
-
-add_subdirectory(../uni.common uni_common)
-
 
 #
 # CPM
