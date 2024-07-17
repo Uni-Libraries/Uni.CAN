@@ -36,7 +36,7 @@ typedef struct {
     /**
      * Array of signals to parse
      */
-    uni_can_j1939_signal_t** signals;
+    uni_can_j1939_signal_t** signal;
 } uni_can_j1939_msgdesc_t;
 
 
