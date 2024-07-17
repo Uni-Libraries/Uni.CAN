@@ -2,6 +2,7 @@
 
 // stdlib
 #include <cstring>
+#include <unistd.h>
 
 // linux
 #include <linux/can.h>

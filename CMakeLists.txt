@@ -73,7 +73,7 @@ target_include_directories(uni.can PUBLIC include)
 target_include_directories(uni.can PRIVATE include_private)
 target_include_directories(uni.can PRIVATE src)
 
-set_target_properties(uni.can PROPERTIES CXX_STANDARD 20)
+set_target_properties(uni.can PROPERTIES CXX_STANDARD 17)
 set_target_properties(uni.can PROPERTIES CXX_STANDARD_REQUIRED ON)
 
 target_link_libraries(uni.can PUBLIC uni.common)
