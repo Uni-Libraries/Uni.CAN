@@ -85,6 +85,10 @@ if(WIN32)
 	endif()
 endif()
 
+if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0)
+	target_link_libraries(uni.can PUBLIC stdc++fs)
+endif()
+
 if(NOT WIN32)
 	target_link_libraries(uni.can PUBLIC libsocketcan)
 endif()
