@@ -31,10 +31,10 @@ if(WIN32)
 
 	if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
 		set_target_properties(chai PROPERTIES IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/bin64/chai.dll")
-		set_target_properties(chai PROPERTIES IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/lib64/chai.lib")
+		set_target_properties(chai PROPERTIES IMPORTED_IMPLIB   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/lib64/chai.lib")
 	else()
 		set_target_properties(chai PROPERTIES IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/bin32/chai.dll")
-		set_target_properties(chai PROPERTIES IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/lib32/chai.lib")
+		set_target_properties(chai PROPERTIES IMPORTED_IMPLIB   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/lib32/chai.lib")
 	endif()
 endif()
 
@@ -45,14 +45,16 @@ endif()
 #
 
 if(MSVC)
-	add_library(ixxat-vci INTERFACE)
+	add_library(ixxat-vci SHARED IMPORTED)
 
-	target_include_directories(ixxat-vci INTERFACE 3rdparty/hms-ixxat/inc)
+	set_target_properties(ixxat-vci PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hms-ixxat/inc")
 
 	if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
-		target_link_libraries(ixxat-vci INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hms-ixxat/lib64/Release/vciapi.lib")
+		set_target_properties(ixxat-vci PROPERTIES IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hms-ixxat/bin64/vciapi.dll")
+		set_target_properties(ixxat-vci PROPERTIES IMPORTED_IMPLIB   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hms-ixxat/lib64/Release/vciapi.lib")
 	else()
-		target_link_libraries(ixxat-vci INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hms-ixxat/lib32/Release/vciapi.lib")
+		set_target_properties(ixxat-vci PROPERTIES IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hms-ixxat/bin32/vciapi.dll")
+		set_target_properties(ixxat-vci PROPERTIES IMPORTED_IMPLIB   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hms-ixxat/lib32/Release/vciapi.lib")
 	endif()
 endif()
 
