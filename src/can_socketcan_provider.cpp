@@ -1,8 +1,9 @@
 #if defined(__linux__)
 
+// stdlib
 #include <cstring>
 
-// auris.can --> private
+// Uni.CAN
 #include "can_socketcan_provider.h"
 #include "can_socketcan_channel.h"
 #include "uni_can_devinfo.h"
@@ -11,7 +12,7 @@
 using namespace std::string_literals;
 
 
-namespace Auris::CAN {
+namespace Uni::CAN {
 
 
     //
@@ -56,6 +57,6 @@ namespace Auris::CAN {
         }
         return result;
     }
-} // namespace Auris::CAN
+} // namespace Uni::CAN
 
 #endif

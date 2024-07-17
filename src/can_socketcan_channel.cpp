@@ -13,12 +13,12 @@
 // libsocketcan
 #include <libsocketcan.h>
 
-// auris.can
+// Uni.CAN
 #include "can_socketcan_channel.h"
 
 
 
-namespace Auris::CAN {
+namespace Uni::CAN {
     //
     // Public
     //
@@ -143,6 +143,6 @@ namespace Auris::CAN {
         _fd = -1;
         return true;
     }
-} // namespace Auris::CAN
+} // namespace Uni::CAN
 
 #endif

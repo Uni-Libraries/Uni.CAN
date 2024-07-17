@@ -4,33 +4,36 @@
 #include <cstdint>
 #include <memory>
 
-// auris.can --> public
-#include "../include/uni_can_channel.h"
+// uni.CAN
+#include "uni_can_channel.h"
+#include "uni_can_devinfo.h"
+#include "can_channel_interface.h"
 
-// auris.can --> private
-#include "can_chai_devinfo.h"
-
-namespace Auris::CAN {
+namespace Uni::CAN {
     class CanChannelChai : public ICanChannel {
-      public:
+    public:
         ~CanChannelChai() override;
 
         bool Init() override;
+
         bool DeInit() override;
 
         bool Open() override;
+
         bool Close() override;
 
-        bool ReceiveMessage(CanMessage &msg) override;
-        bool TransmitMessage(CanMessage &msg) override;
+        bool ReceiveMessage(uni_can_message_t &msg) override;
 
-      protected:
+        bool TransmitMessage(const uni_can_message_t &msg) override;
+
+    protected:
         friend class CanProviderChai;
-        explicit CanChannelChai(std::shared_ptr<CanDevinfoChai> &devInfo, size_t channelIdx, uint32_t baudrate);
 
-      private:
+        explicit CanChannelChai(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate);
+
+    private:
         uint8_t _channel_num = -1;
-        std::shared_ptr<CanDevinfoChai> _dev_info;
+        uni_can_devinfo_t _dev_info;
         uint32_t _can_baudrate = 0;
     };
-} // namespace Auris::CAN
+} // namespace Uni::CAN

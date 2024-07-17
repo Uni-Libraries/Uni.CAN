@@ -6,43 +6,43 @@
 // CHAI SDK
 #include <chai.h>
 
-// auris.can --> private
+// Uni.CAN
 #include "can_chai_channel.h"
 
-namespace Auris::CAN {
+namespace Uni::CAN {
     CanChannelChai::~CanChannelChai() {
         Close();
         DeInit();
     }
 
-    bool CanChannelChai::ReceiveMessage(CanMessage &msg) {
+    bool CanChannelChai::ReceiveMessage(uni_can_message_t &msg) {
         canmsg_t canmsg_native{};
         bool result = false;
 
         if (CiRead(_channel_num, &canmsg_native, 1) == 1) {
-            msg.msg_id = canmsg_native.id;
-            msg.msg_len = canmsg_native.len;
-            memcpy(msg.msg_data, canmsg_native.data, msg.msg_len);
+            msg.id = canmsg_native.id;
+            msg.len = canmsg_native.len;
+            memcpy(msg.data, canmsg_native.data, msg.len);
             result = true;
         }
 
         return result;
     }
 
-    bool CanChannelChai::TransmitMessage(CanMessage &msg) {
+    bool CanChannelChai::TransmitMessage(const uni_can_message_t &msg) {
         canmsg_t output_frame{};
-        output_frame.id = msg.msg_id;
-        output_frame.len = msg.msg_len;
+        output_frame.id = msg.id;
+        output_frame.len = msg.len;
         output_frame.flags = FRAME_EFF;
         output_frame.ts = 0;
 
-        memcpy(output_frame.data, msg.msg_data, msg.msg_len);
+        memcpy(output_frame.data, msg.data, msg.len);
         return CiTransmit(_channel_num, &output_frame) == 0;
     }
 
-    CanChannelChai::CanChannelChai(std::shared_ptr<CanDevinfoChai> &devInfo, size_t channelIdx, uint32_t baudrate) {
-        _dev_info = devInfo;
-        _channel_num = _dev_info->GetChannelNum(channelIdx);
+    CanChannelChai::CanChannelChai(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate) {
+        _dev_info = *devInfo;
+        _channel_num = channelIdx;
         _can_baudrate = baudrate;
     }
 
@@ -113,6 +113,6 @@ namespace Auris::CAN {
     }
 
     bool CanChannelChai::Close() { return CiStop(_channel_num) == 0; }
-} // namespace Auris::CAN
+} // namespace Uni::CAN
 
 #endif

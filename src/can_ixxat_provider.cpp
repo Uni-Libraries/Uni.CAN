@@ -3,27 +3,31 @@
 // VCI SDK
 #include <vcisdk.h>
 
-// auris.sdk --> private
+// Uni.CAN
 #include "can_ixxat_channel.h"
-#include "can_ixxat_devinfo.h"
 #include "can_ixxat_provider.h"
 
-namespace Auris::CAN {
+namespace Uni::CAN {
     void CanProviderIxxat::Init() {
         // TODO
     }
 
-    std::vector<std::shared_ptr<ICanDevinfo>> CanProviderIxxat::GetDeviceInfo() {
-        std::vector<std::shared_ptr<ICanDevinfo>> result;
+    std::vector<std::shared_ptr<uni_can_devinfo_t> > CanProviderIxxat::GetDeviceInfo() {
+        std::vector<std::shared_ptr<uni_can_devinfo_t> > result;
 
         IVciDeviceManager *dev_mgr = nullptr;
         IVciEnumDevice *dev_enum = nullptr;
 
         if (VciGetDeviceManager(&dev_mgr) == VCI_OK) {
             if (dev_mgr->EnumDevices(&dev_enum) == VCI_OK) {
-                VCIDEVICEINFO dev_info{};
-                while (dev_enum->Next(1, &dev_info, nullptr) == VCI_OK) {
-                    result.push_back(std::shared_ptr<ICanDevinfo>(new CanDevinfoIxxat(dev_info)));
+                VCIDEVICEINFO binfo{};
+                while (dev_enum->Next(1, &binfo, nullptr) == VCI_OK) {
+                    auto *devinfo = new uni_can_devinfo_t; //TODO: can_name, can_ifidx
+                    strcpy(devinfo->device_manufacturer, binfo.Manufacturer);
+                    strcpy(devinfo->device_model, binfo.Description);
+                    strcpy(devinfo->device_sn, binfo.UniqueHardwareId.AsChar);\
+                    devinfo->device_index = binfo.VciObjectId.AsInt64;
+                    result.push_back(std::shared_ptr<uni_can_devinfo_t>(devinfo));
                 }
 
                 dev_enum->Release();
@@ -37,15 +41,14 @@ namespace Auris::CAN {
 
     bool CanProviderIxxat::IsInited() { return true; }
 
-    std::shared_ptr<ICanChannel> CanProviderIxxat::CreateChannel(std::shared_ptr<ICanDevinfo> &devInfo, size_t channelIdx,
-                                                                         uint32_t baudrate) {
-        auto sp = std::dynamic_pointer_cast<CanDevinfoIxxat>(devInfo);
-        if (!sp) {
-            return nullptr;
+    ICanChannel *CanProviderIxxat::CreateChannel(uni_can_devinfo_t *devInfo, size_t channelIdx,
+                                                 uint32_t baudrate) {
+        ICanChannel *result = nullptr;
+        if (devInfo != nullptr && baudrate != 0) {
+            result = new CanChannelIxxat(devInfo, channelIdx, baudrate);
         }
-
-        return std::shared_ptr<ICanChannel>(new CanChannelIxxat(sp, channelIdx, baudrate));
+        return result;
     }
-} // namespace Auris::CAN
+} // namespace Uni::CAN
 
 #endif

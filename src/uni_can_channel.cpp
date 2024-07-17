@@ -14,28 +14,28 @@
 
 bool uni_can_channel_init(void *channel) {
     if (channel) {
-        return static_cast<Auris::CAN::ICanChannel *>(channel)->Init();
+        return static_cast<Uni::CAN::ICanChannel *>(channel)->Init();
     }
     return false;
 }
 
 bool uni_can_channel_open(void *channel) {
     if (channel) {
-        return static_cast<Auris::CAN::ICanChannel *>(channel)->Open();
+        return static_cast<Uni::CAN::ICanChannel *>(channel)->Open();
     }
     return false;
 }
 
 bool uni_can_channel_close(void *channel) {
     if (channel) {
-        return static_cast<Auris::CAN::ICanChannel *>(channel)->Close();
+        return static_cast<Uni::CAN::ICanChannel *>(channel)->Close();
     }
     return false;
 }
 
 bool uni_can_channel_destroy(void *channel) {
     if (channel) {
-        delete static_cast<Auris::CAN::ICanChannel *>(channel);
+        delete static_cast<Uni::CAN::ICanChannel *>(channel);
         return true;
     }
     return false;
@@ -43,14 +43,14 @@ bool uni_can_channel_destroy(void *channel) {
 
 bool uni_can_channel_receive(void *channel, uni_can_message_t *msg) {
     if (channel) {
-        return static_cast<Auris::CAN::ICanChannel *>(channel)->ReceiveMessage(*msg);
+        return static_cast<Uni::CAN::ICanChannel *>(channel)->ReceiveMessage(*msg);
     }
     return false;
 }
 
 bool uni_can_channel_transmit(void *channel, const uni_can_message_t *msg) {
     if (channel) {
-        return static_cast<Auris::CAN::ICanChannel *>(channel)->TransmitMessage(*msg);
+        return static_cast<Uni::CAN::ICanChannel *>(channel)->TransmitMessage(*msg);
     }
     return false;
 }

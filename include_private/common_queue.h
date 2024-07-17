@@ -5,10 +5,12 @@
 #include <mutex>
 #include <queue>
 
-namespace Auris::CAN {
-    template <class T> class SharedQueue {
-      public:
+namespace Uni::CAN {
+    template<class T>
+    class SharedQueue {
+    public:
         SharedQueue() = default;
+
         ~SharedQueue() = default;
 
         void clear() {
@@ -38,9 +40,9 @@ namespace Auris::CAN {
             return val;
         }
 
-      private:
+    private:
         std::condition_variable _condvar{};
         mutable std::mutex _mutex{};
         std::queue<T> _queue{};
     };
-} // namespace Auris::CAN
+} // namespace Uni::CAN

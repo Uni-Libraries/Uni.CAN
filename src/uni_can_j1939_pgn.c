@@ -7,7 +7,6 @@
 #include "uni_can_j1939_pgn.h"
 
 
-
 //
 // Defines
 //
@@ -15,12 +14,11 @@
 #define EXT_PDU_FORMAT 240U
 
 
-
 //
 // Functions
 //
 
-uint8_t uni_can_j1939_pgn_get_priority(uint32_t can_id){
+uint8_t uni_can_j1939_pgn_get_priority(uint32_t can_id) {
     return (can_id & UNI_CAN_J1939_MASK_PRIORITY) >> UNI_CAN_J1939_POS_PRIORITY;
 }
 
@@ -67,7 +65,8 @@ bool uni_can_j1939_pgn_contains_dstaddr(uint32_t can_id) {
 
 
 uint32_t uni_can_j1939_pgn_create_3(uint32_t pgn_number) {
-    return (pgn_number << UNI_CAN_J1939_POS_PGN_NUMBER) & uni_can_j1939_pgn_get_pgnnumber_mask(pgn_number << UNI_CAN_J1939_POS_PGN_NUMBER);
+    return (pgn_number << UNI_CAN_J1939_POS_PGN_NUMBER) & uni_can_j1939_pgn_get_pgnnumber_mask(
+               pgn_number << UNI_CAN_J1939_POS_PGN_NUMBER);
 }
 
 
@@ -110,9 +109,9 @@ uint32_t uni_can_j1939_pgn_create_from_array(const uint8_t *data) {
 
 void uni_can_j1939_pgn_create_to_array(uint32_t pgn, uint8_t *data) {
     if (data) {
-        data[0] = (pgn >> 0) & 0xFF;     //-V557
-        data[1] = (pgn >> 8) & 0xFF;     //-V557
-        data[2] = (pgn >> 16) & 0x03;    //-V557
+        data[0] = (pgn >> 0) & 0xFF; //-V557
+        data[1] = (pgn >> 8) & 0xFF; //-V557
+        data[2] = (pgn >> 16) & 0x03; //-V557
     }
 }
 
@@ -125,7 +124,8 @@ uint32_t uni_can_j1939_pgn_replace_addr(uint32_t can_id, uint8_t src_addr) {
 uint32_t uni_can_j1939_pgn_replace_dstaddr(uint32_t can_id, uint8_t dst_addr) {
     uint32_t result = can_id;
     if (uni_can_j1939_pgn_contains_dstaddr(result)) {
-        result = (result & (~UNI_CAN_J1939_MASK_PDU_SPECIFIC)) | ((dst_addr << UNI_CAN_J1939_POS_PDU_SPECIFIC) & UNI_CAN_J1939_MASK_PDU_SPECIFIC);
+        result = (result & (~UNI_CAN_J1939_MASK_PDU_SPECIFIC)) | (
+                     (dst_addr << UNI_CAN_J1939_POS_PDU_SPECIFIC) & UNI_CAN_J1939_MASK_PDU_SPECIFIC);
     }
     return result;
 }

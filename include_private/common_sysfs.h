@@ -7,11 +7,12 @@
 // SysFs
 //
 
-namespace Auris::CAN {
+namespace Uni::CAN {
     class SysFs {
-      public:
+    public:
         static bool IsClassExists(const std::string &className, const std::string &elementName);
 
-        static int GetClassProperty(const std::string &className, const std::string &elementName, const std::string &propertyName);
+        static int GetClassProperty(const std::string &className, const std::string &elementName,
+                                    const std::string &propertyName);
     };
-} // namespace Auris::CAN
+} // namespace Uni::CAN

@@ -17,7 +17,7 @@ namespace fs = std::filesystem;
 using namespace std::string_literals;
 
 
-namespace Auris::CAN {
+namespace Uni::CAN {
     //
     // Public
     //
@@ -38,4 +38,4 @@ namespace Auris::CAN {
 
         return -1;
     }
-} // namespace Auris::CAN
+} // namespace Uni::CAN

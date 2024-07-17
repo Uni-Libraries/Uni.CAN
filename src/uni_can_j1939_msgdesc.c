@@ -12,17 +12,17 @@
 // Functions
 //
 bool uni_can_j1939_msgdesc_signal_get(uni_can_message_t *msg, uni_can_j1939_msgdesc_t *desc, size_t signal_id,
-    float *value) {
+                                      float *value) {
     bool result = false;
 
-    if(msg != NULL && desc != NULL && value != NULL) {
+    if (msg != NULL && desc != NULL && value != NULL) {
         size_t offset = 0U;
         size_t sig_idx = 0U;
-        while(desc->signal[sig_idx] != NULL) {
-            if(desc->signal[sig_idx]->id == signal_id) {
-                if((offset % 8 == 0) && desc->signal[sig_idx]->length == 16) {
+        while (desc->signal[sig_idx] != NULL) {
+            if (desc->signal[sig_idx]->id == signal_id) {
+                if ((offset % 8 == 0) && desc->signal[sig_idx]->length == 16) {
                     uint16_t value_u16 = 0;
-                    memcpy(&value_u16, &msg->data[offset/8], sizeof(uint16_t));
+                    memcpy(&value_u16, &msg->data[offset / 8], sizeof(uint16_t));
                     *value = value_u16 * desc->signal[sig_idx]->scale + desc->signal[sig_idx]->offset;
                     result = true;
                 }
@@ -40,14 +40,14 @@ bool uni_can_j1939_msgdesc_signal_set(uni_can_message_t *msg, uni_can_j1939_msgd
                                       float value) {
     bool result = false;
 
-    if(msg != NULL && desc != NULL) {
+    if (msg != NULL && desc != NULL) {
         size_t offset = 0U;
         size_t sig_idx = 0U;
-        while(desc->signal[sig_idx] != NULL) {
-            if(desc->signal[sig_idx]->id == signal_id) {
-                if((offset % 8 == 0) && desc->signal[sig_idx]->length == 16) {
+        while (desc->signal[sig_idx] != NULL) {
+            if (desc->signal[sig_idx]->id == signal_id) {
+                if ((offset % 8 == 0) && desc->signal[sig_idx]->length == 16) {
                     uint16_t value_u16 = value / desc->signal[sig_idx]->scale;
-                    memcpy(&msg->data[offset/8], &value_u16, sizeof(uint16_t));
+                    memcpy(&msg->data[offset / 8], &value_u16, sizeof(uint16_t));
                     result = true;
                 }
                 break;

@@ -10,6 +10,5 @@
 //
 //
 TEST_CASE("j1939", "meow") {
-    
     REQUIRE(true);
 }

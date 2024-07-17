@@ -4,23 +4,20 @@
 #include <memory>
 #include <vector>
 
-// auris.can
+// uni.can
 #include "uni_can_devinfo.h"
-
-// uni.can.private
 #include "can_channel_interface.h"
 
 
-
-namespace Auris::CAN {
+namespace Uni::CAN {
     class ICanProvider {
-      public:
+    public:
         virtual void Init() = 0;
 
         virtual bool IsInited() = 0;
 
-        virtual ICanChannel* CreateChannel(uni_can_devinfo_t* devInfo, size_t channelIdx, uint32_t baudrate) = 0;
+        virtual ICanChannel *CreateChannel(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate) = 0;
 
-        virtual std::vector<std::shared_ptr<uni_can_devinfo_t>> GetDeviceInfo() = 0;
+        virtual std::vector<std::shared_ptr<uni_can_devinfo_t> > GetDeviceInfo() = 0;
     };
 }

@@ -1,12 +1,12 @@
 #if defined(_MSC_VER)
 
-// auris.can --> private
+// Uni.CAN
 #include "can_ixxat_channel.h"
 
 
-namespace Auris::CAN {
-    CanChannelIxxat::CanChannelIxxat(std::shared_ptr<CanDevinfoIxxat> &devInfo, size_t channelIdx, uint32_t baudrate) {
-        _dev_info = devInfo;
+namespace Uni::CAN {
+    CanChannelIxxat::CanChannelIxxat(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate) {
+        _dev_info = *devInfo;
         _channel_idx = channelIdx;
         _can_baudrate = baudrate;
     }
@@ -40,7 +40,7 @@ namespace Auris::CAN {
         return true;
     }
 
-    bool CanChannelIxxat::ReceiveMessage(CanMessage &msg) {
+    bool CanChannelIxxat::ReceiveMessage(uni_can_message_t &msg) {
         if (_read_queue.empty()) {
             return false;
         }
@@ -49,11 +49,11 @@ namespace Auris::CAN {
         return true;
     }
 
-    bool CanChannelIxxat::TransmitMessage(CanMessage &msg) {
+    bool CanChannelIxxat::TransmitMessage(const uni_can_message_t &msg) {
         PCANMSG msg_native = nullptr;
         uint16_t msg_native_cnt = 0;
 
-        if (_can_writer->AcquireWrite((void **)&msg_native, &msg_native_cnt) != VCI_OK) {
+        if (_can_writer->AcquireWrite((void **) &msg_native, &msg_native_cnt) != VCI_OK) {
             return false;
         }
 
@@ -62,12 +62,12 @@ namespace Auris::CAN {
             return false;
         }
 
-        msg_native[0].dwMsgId = msg.msg_id;
+        msg_native[0].dwMsgId = msg.id;
         msg_native[0].dwTime = 0;
         msg_native[0].uMsgInfo.Bytes.bType = CAN_MSGTYPE_DATA;
-        msg_native[0].uMsgInfo.Bytes.bFlags = CAN_MAKE_MSGFLAGS(CAN_LEN_TO_SDLC(msg.msg_len), 0, 0, 0, 1);
+        msg_native[0].uMsgInfo.Bytes.bFlags = CAN_MAKE_MSGFLAGS(CAN_LEN_TO_SDLC(msg.len), 0, 0, 0, 1);
 
-        std::memcpy(msg_native->abData, msg.msg_data, msg.msg_len);
+        std::memcpy(msg_native->abData, msg.data, msg.len);
 
         if (_can_writer->ReleaseWrite(1) != VCI_OK) {
             return false;
@@ -81,19 +81,21 @@ namespace Auris::CAN {
             return false;
         }
 
-        if (_device_mgr->OpenDevice(_dev_info->GetVciId(), &_device) != VCI_OK) {
+        VCIID vciid{};
+        vciid.AsInt64 = _dev_info.device_index;
+        if (_device_mgr->OpenDevice(vciid, &_device) != VCI_OK) {
             return false;
         }
 
-        if (_device->OpenComponent(CLSID_VCIBAL, IID_IBalObject, (void **)&_device_bal) != VCI_OK) {
+        if (_device->OpenComponent(CLSID_VCIBAL, IID_IBalObject, (void **) &_device_bal) != VCI_OK) {
             return false;
         }
 
-        if (_device_bal->OpenSocket(_channel_idx, IID_ICanSocket, (void **)&_can_socket) != VCI_OK) {
+        if (_device_bal->OpenSocket(_channel_idx, IID_ICanSocket, (void **) &_can_socket) != VCI_OK) {
             return false;
         }
 
-        if (_device_bal->OpenSocket(_channel_idx, IID_ICanControl2, (void **)&_can_control) != VCI_OK) {
+        if (_device_bal->OpenSocket(_channel_idx, IID_ICanControl2, (void **) &_can_control) != VCI_OK) {
             return false;
         }
 
@@ -133,48 +135,49 @@ namespace Auris::CAN {
 
         CANBTP baudrate = CAN_BTP_EMPTY;
         switch (_can_baudrate) {
-        case 5'000:
-            baudrate = CAN_BTP_5KB;
-            break;
-        case 10'000:
-            baudrate = CAN_BTP_10KB;
-            break;
-        case 20'000:
-            baudrate = CAN_BTP_20KB;
-            break;
-        case 50'000:
-            baudrate = CAN_BTP_50KB;
-            break;
-        case 100'000:
-            baudrate = CAN_BTP_100KB;
-            break;
-        case 125'000:
-            baudrate = CAN_BTP_125KB;
-            break;
-        case 250'000:
-            baudrate = CAN_BTP_250KB;
-            break;
-        case 500'000:
-            baudrate = CAN_BTP_500KB;
-            break;
-        case 800'000:
-            baudrate = CAN_BTP_800KB;
-            break;
-        case 1'000'000:
-            baudrate = CAN_BTP_1000KB;
-            break;
-        default:
-            break;
+            case 5'000:
+                baudrate = CAN_BTP_5KB;
+                break;
+            case 10'000:
+                baudrate = CAN_BTP_10KB;
+                break;
+            case 20'000:
+                baudrate = CAN_BTP_20KB;
+                break;
+            case 50'000:
+                baudrate = CAN_BTP_50KB;
+                break;
+            case 100'000:
+                baudrate = CAN_BTP_100KB;
+                break;
+            case 125'000:
+                baudrate = CAN_BTP_125KB;
+                break;
+            case 250'000:
+                baudrate = CAN_BTP_250KB;
+                break;
+            case 500'000:
+                baudrate = CAN_BTP_500KB;
+                break;
+            case 800'000:
+                baudrate = CAN_BTP_800KB;
+                break;
+            case 1'000'000:
+                baudrate = CAN_BTP_1000KB;
+                break;
+            default:
+                break;
         }
 
-        CANINITLINE2 init_params = {.bOpMode = CAN_OPMODE_STANDARD | CAN_OPMODE_EXTENDED | CAN_OPMODE_ERRFRAME,
-                                    .bExMode = CAN_EXMODE_DISABLED,
-                                    .bSFMode = CAN_FILTER_INCL,
-                                    .bEFMode = CAN_FILTER_INCL,
-                                    .dwSFIds = 0,
-                                    .dwEFIds = 0,
-                                    .sBtpSdr = baudrate,
-                                    .sBtpFdr = CAN_BTP_EMPTY};
+        CANINITLINE2 init_params{};
+        init_params.bOpMode = CAN_OPMODE_STANDARD | CAN_OPMODE_EXTENDED | CAN_OPMODE_ERRFRAME;
+        init_params.bExMode = CAN_EXMODE_DISABLED;
+        init_params.bSFMode = CAN_FILTER_INCL;
+        init_params.bEFMode = CAN_FILTER_INCL;
+        init_params.dwSFIds = 0;
+        init_params.dwEFIds = 0;
+        init_params.sBtpSdr = baudrate;
+        init_params.sBtpFdr = CAN_BTP_EMPTY;
 
         if (_can_control->InitLine(&init_params) != VCI_OK) {
             return false;
@@ -288,21 +291,21 @@ namespace Auris::CAN {
         PCANMSG msgs = nullptr;
 
         uint16_t msgs_count = 0;
-        if (_can_reader->AcquireRead((PVOID *)&msgs, &msgs_count) != VCI_OK) {
+        if (_can_reader->AcquireRead((PVOID *) &msgs, &msgs_count) != VCI_OK) {
             return false;
         }
 
         for (size_t idx = 0; idx < msgs_count; idx++) {
-            CanMessage msg{};
-            msg.msg_id = msgs[idx].dwMsgId;
-            msg.msg_len = CAN_EDLC_TO_LEN(msgs[idx].uMsgInfo.Bits.dlc);
-            std::memcpy(msg.msg_data, msgs[idx].abData, msg.msg_len);
+            uni_can_message_t msg{};
+            msg.id = msgs[idx].dwMsgId;
+            msg.len = CAN_EDLC_TO_LEN(msgs[idx].uMsgInfo.Bits.dlc);
+            std::memcpy(msg.data, msgs[idx].abData, msg.len);
             _read_queue.push(msg);
         }
 
         _can_reader->ReleaseRead(msgs_count);
         return true;
     }
-} // namespace Auris::CAN
+} // namespace Uni::CAN
 
 #endif
