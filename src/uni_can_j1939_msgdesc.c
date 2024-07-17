@@ -11,8 +11,8 @@
 //
 // Functions
 //
-bool uni_can_j1939_msgdesc_signal_get(uni_can_message_t *msg, uni_can_j1939_msgdesc_t *desc, size_t signal_id,
-                                      float *value) {
+bool uni_can_j1939_msgdesc_signal_get(const uni_can_message_t *msg, const uni_can_j1939_msgdesc_t *desc, size_t signal_id,
+    float *value) {
     bool result = false;
 
     if (msg != NULL && desc != NULL && value != NULL) {
@@ -36,7 +36,7 @@ bool uni_can_j1939_msgdesc_signal_get(uni_can_message_t *msg, uni_can_j1939_msgd
     return result;
 }
 
-bool uni_can_j1939_msgdesc_signal_set(uni_can_message_t *msg, uni_can_j1939_msgdesc_t *desc, size_t signal_id,
+bool uni_can_j1939_msgdesc_signal_set(uni_can_message_t *msg, const uni_can_j1939_msgdesc_t *desc, size_t signal_id,
                                       float value) {
     bool result = false;
 
