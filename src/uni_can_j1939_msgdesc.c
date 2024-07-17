@@ -19,16 +19,17 @@ bool uni_can_j1939_msgdesc_signal_get(const uni_can_message_t *msg, const uni_ca
         size_t offset = 0U;
         size_t sig_idx = 0U;
         while (desc->signal[sig_idx] != NULL) {
-            if (desc->signal[sig_idx]->id == signal_id) {
-                if ((offset % 8 == 0) && desc->signal[sig_idx]->length == 16) {
-                    uint16_t value_u16 = 0;
-                    memcpy(&value_u16, &msg->data[offset / 8], sizeof(uint16_t));
-                    *value = value_u16 * desc->signal[sig_idx]->scale + desc->signal[sig_idx]->offset;
+            uni_can_j1939_signal_t* signal = desc->signal[sig_idx];
+            if (signal->id == signal_id) {
+                if ((offset % 8) == 0 && (signal->length % 8) == 0) {
+                    uint64_t value_u64 = 0;
+                    memcpy(&value_u64, &msg->data[offset / 8], signal->length / 8);
+                    *value = value_u64 * signal->scale + signal->offset;
                     result = true;
                 }
                 break;
             }
-            offset += desc->signal[sig_idx]->length;
+            offset += signal->length;
             sig_idx++;
         }
     }
@@ -44,15 +45,16 @@ bool uni_can_j1939_msgdesc_signal_set(uni_can_message_t *msg, const uni_can_j193
         size_t offset = 0U;
         size_t sig_idx = 0U;
         while (desc->signal[sig_idx] != NULL) {
-            if (desc->signal[sig_idx]->id == signal_id) {
-                if ((offset % 8 == 0) && desc->signal[sig_idx]->length == 16) {
-                    uint16_t value_u16 = (value - desc->signal[sig_idx]->offset) / desc->signal[sig_idx]->scale;
-                    memcpy(&msg->data[offset / 8], &value_u16, sizeof(uint16_t));
+            uni_can_j1939_signal_t* signal = desc->signal[sig_idx];
+            if (signal->id == signal_id) {
+                if ((offset % 8) == 0 && (signal->length % 8) == 0) {
+                    uint64_t value_u64 = (value - signal->offset) / signal->scale;
+                    memcpy(&msg->data[offset / 8], &value_u64, signal->length / 8);
                     result = true;
                 }
                 break;
             }
-            offset += desc->signal[sig_idx]->length;
+            offset += signal->length;
             sig_idx++;
         }
     }
