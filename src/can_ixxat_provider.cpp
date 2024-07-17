@@ -23,10 +23,11 @@ namespace Uni::CAN {
                 VCIDEVICEINFO binfo{};
                 while (dev_enum->Next(1, &binfo, nullptr) == VCI_OK) {
                     auto *devinfo = new uni_can_devinfo_t; //TODO: can_name, can_ifidx
-                    strcpy(devinfo->device_manufacturer, binfo.Manufacturer);
+                    strcpy(devinfo->device_manufacturer, "HMS");
                     strcpy(devinfo->device_model, binfo.Description);
                     strcpy(devinfo->device_sn, binfo.UniqueHardwareId.AsChar);\
                     devinfo->device_index = binfo.VciObjectId.AsInt64;
+                    devinfo->device_chancnt = 1;
                     result.push_back(std::shared_ptr<uni_can_devinfo_t>(devinfo));
                 }
 

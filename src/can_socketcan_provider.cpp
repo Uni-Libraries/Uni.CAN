@@ -40,6 +40,7 @@ namespace Uni::CAN {
                 strcpy(devinfo->device_model, "SocketCAN");
                 strcpy(devinfo->device_sn, can_name.c_str());
                 devinfo->device_index = can_ifidx;
+                devinfo->device_chancnt = 1;
                 result.push_back(std::shared_ptr<uni_can_devinfo_t>(devinfo));
             }
             can_idx++;

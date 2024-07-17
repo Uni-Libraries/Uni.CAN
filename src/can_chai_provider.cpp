@@ -31,6 +31,7 @@ namespace Uni::CAN {
                 strcpy(devinfo->device_manufacturer, binfo.manufact);
                 strcpy(devinfo->device_model, binfo.name);
                 devinfo->device_index = binfo.brdnum;
+                devinfo->device_chancnt = 1;
                 result.push_back(std::shared_ptr<uni_can_devinfo_t>(devinfo));
             }
         }
