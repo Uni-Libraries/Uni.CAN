@@ -7,6 +7,8 @@
 
 // uni.can
 #include "uni_can_j1939_msg.h"
+
+#include "uni_can_j1939_const.h"
 #include "uni_can_j1939_pgn.h"
 
 
@@ -27,7 +29,7 @@ bool uni_can_j1939_msg_pgn_request(uni_can_message_t *msg, size_t pgn_id, uint8_
 
     if(msg != NULL) {
         msg->len = 3;
-        msg->id = uni_can_j1939_pgn_create(J1939_PRIORITY, pgn_id, addr_dst, addr_src);
+        msg->id = uni_can_j1939_pgn_create(J1939_PRIORITY, UNI_CAN_J1939_PGN_REQUEST, addr_dst, addr_src);
         memcpy(msg->data, &pgn_id, msg->len);
         result = true;
     }
