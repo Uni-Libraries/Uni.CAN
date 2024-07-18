@@ -2,16 +2,41 @@
 // Includes
 //
 
-// uni.can
-#include "uni_can_j1939_msgdesc.h"
-
+// stdlib
 #include <string.h>
+
+// uni.can
+#include "uni_can_j1939_msg.h"
+#include "uni_can_j1939_pgn.h"
+
+
+//
+// Defines
+//
+
+#define J1939_PRIORITY 6U
+
 
 
 //
 // Functions
 //
-bool uni_can_j1939_msgdesc_signal_get(const uni_can_message_t *msg, const uni_can_j1939_msgdesc_t *desc, size_t signal_id,
+
+bool uni_can_j1939_msg_pgn_request(uni_can_message_t *msg, size_t pgn_id, uint8_t addr_dst, uint8_t addr_src) {
+    bool result = false;
+
+    if(msg != NULL) {
+        msg->len = 3;
+        msg->id = uni_can_j1939_pgn_create(J1939_PRIORITY, pgn_id, addr_dst, addr_src);
+        memcpy(msg->data, &pgn_id, msg->len);
+        result = true;
+    }
+
+    return result;
+}
+
+
+bool uni_can_j1939_msg_signal_get(const uni_can_message_t *msg, const uni_can_j1939_msg_desc_t *desc, size_t signal_id,
     float *value) {
     bool result = false;
 
@@ -37,7 +62,7 @@ bool uni_can_j1939_msgdesc_signal_get(const uni_can_message_t *msg, const uni_ca
     return result;
 }
 
-bool uni_can_j1939_msgdesc_signal_set(uni_can_message_t *msg, const uni_can_j1939_msgdesc_t *desc, size_t signal_id,
+bool uni_can_j1939_msg_signal_set(uni_can_message_t *msg, const uni_can_j1939_msg_desc_t *desc, size_t signal_id,
                                       float value) {
     bool result = false;
 

@@ -36,16 +36,21 @@ typedef struct {
      * Array of signals to parse
      */
     uni_can_j1939_signal_t **signal;
-} uni_can_j1939_msgdesc_t;
+} uni_can_j1939_msg_desc_t;
 
 
 //
 // Functions
 //
 
-bool uni_can_j1939_msgdesc_signal_get(const uni_can_message_t* msg, const uni_can_j1939_msgdesc_t* desc, size_t signal_id, float* value);
 
-bool uni_can_j1939_msgdesc_signal_set(uni_can_message_t* msg, const uni_can_j1939_msgdesc_t* desc, size_t signal_id, float value);
+bool uni_can_j1939_msg_pgn_request(uni_can_message_t *msg, size_t pgn_id, uint8_t addr_dst, uint8_t addr_src);
+
+bool uni_can_j1939_msg_signal_get(const uni_can_message_t *msg, const uni_can_j1939_msg_desc_t *desc,
+                                  size_t signal_id, float *value);
+
+bool uni_can_j1939_msg_signal_set(uni_can_message_t *msg, const uni_can_j1939_msg_desc_t *desc, size_t signal_id,
+                                  float value);
 
 
 #if defined(__cplusplus)

@@ -15,7 +15,9 @@ extern "C" {
 #include "uni_can_message.h"
 
 #include "uni_can_j1939_const.h"
+#include "uni_can_j1939_msg.h"
 #include "uni_can_j1939_pgn.h"
+#include "uni_can_j1939_signal.h"
 
 #if defined(__cplusplus)
 }
