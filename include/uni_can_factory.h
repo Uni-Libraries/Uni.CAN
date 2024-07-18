@@ -1,5 +1,4 @@
 #pragma once
-#include "../include_private/can_provider.h"
 
 #if defined(__cplusplus)
 extern "C" {

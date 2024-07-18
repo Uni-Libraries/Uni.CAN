@@ -21,6 +21,7 @@ typedef enum {
     UNI_CAN_J1939_SIGNAL_UNSIGNED,
     UNI_CAN_J1939_SIGNAL_FLOAT,
     UNI_CAN_J1939_SIGNAL_DOUBLE,
+    UNI_CAN_J1939_SIGNAL_PGNNUM,
 } uni_can_j1939_signal_type_e;
 
 
