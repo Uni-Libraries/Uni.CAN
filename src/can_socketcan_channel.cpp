@@ -100,8 +100,10 @@ namespace Uni::CAN {
     bool CanChannelSocketcan::Open() {
         const auto *can_name = _dev_info.device_sn;
 
+        // stop interface
         can_do_stop(can_name);
 
+        // set bittiming
         can_bittiming bittiming{};
         can_get_bittiming(can_name, &bittiming);
         if (bittiming.bitrate != _can_baudrate) {
@@ -111,14 +113,23 @@ namespace Uni::CAN {
             }
         }
 
+        // set restart-ms
+        uint32_t restart_ms;
+        if(can_get_restart_ms(can_name, &restart_ms) == 0){
+            if(restart_ms != _can_restart) {
+                if(can_set_restart_ms(can_name, _can_restart) < 0) {
+                    return false;
+                }
+            }
+        }
+
+        // start interface
         can_do_start(can_name);
 
-        // check if it already opened
+        // open socket
         if (_fd >= 0) {
             return false;
         }
-
-        // allocate socket
         _fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
 
         // bind socket

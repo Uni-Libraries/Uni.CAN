@@ -38,6 +38,7 @@ namespace Uni::CAN {
     private:
         uni_can_devinfo_t _dev_info;
         uint32_t _can_baudrate = 0;
+        uint32_t _can_restart = 100;
 
         int _fd = -1;
     };
