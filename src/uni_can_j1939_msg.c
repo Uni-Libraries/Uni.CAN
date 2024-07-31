@@ -3,6 +3,7 @@
 //
 
 // stdlib
+#include <math.h>
 #include <string.h>
 
 // uni.can
@@ -52,7 +53,13 @@ bool uni_can_j1939_msg_signal_get(const uni_can_message_t *msg, const uni_can_j1
                     if(signal->type == UNI_CAN_J1939_SIGNAL_SLOT) {
                         uint64_t value_u64 = 0;
                         memcpy(&value_u64, &msg->data[offset / 8], signal->length / 8);
-                        value->slot = value_u64 * signal->scale + signal->offset;
+
+                        if(value_u64 == (1ULL << signal->length)-1ULL) {
+                            value->slot = nan("");
+                        }
+                        else {
+                            value->slot = value_u64 * signal->scale + signal->offset;
+                        }
                     }
                     else {
                         memcpy(value->raw_uint8, &msg->data[offset / 8], signal->length / 8);
