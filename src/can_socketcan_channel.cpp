@@ -66,7 +66,7 @@ namespace Uni::CAN {
         // Fill struct
         msg.id = frame.can_id;
         msg.len = frame.can_dlc;
-        memcpy(msg.data, frame.data, sizeof(msg.data));
+        memcpy(msg.data.u8, frame.data, sizeof(msg.data));
 
         return true;
     }
@@ -79,7 +79,7 @@ namespace Uni::CAN {
         can_frame frame{};
         frame.can_id = msg.id | CAN_EFF_FLAG;
         frame.can_dlc = msg.len;
-        memcpy(frame.data, msg.data, sizeof(frame.data));
+        memcpy(frame.data, msg.data.u8, sizeof(frame.data));
 
         if (write(_fd, &frame, sizeof(frame)) < 0) {
             return false;

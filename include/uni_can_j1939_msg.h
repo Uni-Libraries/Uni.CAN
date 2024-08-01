@@ -44,7 +44,7 @@ typedef struct {
 //
 
 
-bool uni_can_j1939_msg_pgn_request(uni_can_message_t *msg, size_t pgn_id, uint8_t addr_dst, uint8_t addr_src);
+bool uni_can_j1939_msg_pgn_request(uni_can_message_t *msg, uint32_t pgn_id, uint8_t addr_dst, uint8_t addr_src);
 
 bool uni_can_j1939_msg_signal_get(const uni_can_message_t *msg, const uni_can_j1939_msg_desc_t *desc,
                                   size_t signal_id, uni_can_j1939_signal_value_t *value);
