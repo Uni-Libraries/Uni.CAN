@@ -67,7 +67,7 @@ namespace Uni::CAN {
         msg_native[0].uMsgInfo.Bytes.bType = CAN_MSGTYPE_DATA;
         msg_native[0].uMsgInfo.Bytes.bFlags = CAN_MAKE_MSGFLAGS(CAN_LEN_TO_SDLC(msg.len), 0, 0, 0, 1);
 
-        std::memcpy(msg_native->abData, msg.data, msg.len);
+        std::memcpy(msg_native->abData, msg.data.u8, msg.len);
 
         if (_can_writer->ReleaseWrite(1) != VCI_OK) {
             return false;
@@ -299,7 +299,7 @@ namespace Uni::CAN {
             uni_can_message_t msg{};
             msg.id = msgs[idx].dwMsgId;
             msg.len = CAN_EDLC_TO_LEN(msgs[idx].uMsgInfo.Bits.dlc);
-            std::memcpy(msg.data, msgs[idx].abData, msg.len);
+            std::memcpy(msg.data.u8, msgs[idx].abData, msg.len);
             _read_queue.push(msg);
         }
 

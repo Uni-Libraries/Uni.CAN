@@ -22,7 +22,7 @@ namespace Uni::CAN {
         if (CiRead(_channel_num, &canmsg_native, 1) == 1) {
             msg.id = canmsg_native.id;
             msg.len = canmsg_native.len;
-            memcpy(msg.data, canmsg_native.data, msg.len);
+            memcpy(msg.data.u8, canmsg_native.data, msg.len);
             result = true;
         }
 
@@ -36,7 +36,7 @@ namespace Uni::CAN {
         output_frame.flags = FRAME_EFF;
         output_frame.ts = 0;
 
-        memcpy(output_frame.data, msg.data, msg.len);
+        memcpy(output_frame.data, msg.data.u8, msg.len);
         return CiTransmit(_channel_num, &output_frame) == 0;
     }
 
