@@ -41,11 +41,13 @@ bool uni_can_channel_destroy(void *channel) {
     return false;
 }
 
-bool uni_can_channel_receive(void *channel, uni_can_message_t *msg) {
+uni_can_message_t* uni_can_channel_receive(void *channel, uni_can_message_t *msg) {
+    uni_can_message_t* result = nullptr;
+
     if (channel) {
-        return static_cast<Uni::CAN::ICanChannel *>(channel)->ReceiveMessage(*msg);
+        result = static_cast<Uni::CAN::ICanChannel *>(channel)->ReceiveMessage();
     }
-    return false;
+    return result;
 }
 
 bool uni_can_channel_transmit(void *channel, const uni_can_message_t *msg) {

@@ -28,9 +28,9 @@ namespace Uni::CAN {
         DeInit();
     }
 
-    bool CanChannelSocketcan::ReceiveMessage(uni_can_message_t &msg) {
+    uni_can_message_t* CanChannelSocketcan::ReceiveMessage() {
         if (_fd < 0) {
-            return false;
+            return nullptr;
         }
 
         // Set up a file descriptor set only containing one socket
@@ -41,34 +41,41 @@ namespace Uni::CAN {
         // Use select to be able to use a timeout
         timeval timeout{};
         if (select(_fd + 1, &fds_read, nullptr, nullptr, &timeout) <= 0) {
-            return false;
+            return nullptr;
         }
 
         // Read frame
         can_frame frame{};
         ssize_t bytesRead = read(_fd, &frame, sizeof(can_frame));
         if (bytesRead != sizeof(frame)) {
-            return false;
+            return nullptr;
         }
 
         // Check error
         if ((frame.can_id & CAN_ERR_FLAG) != 0) {
-            return false;
+            return nullptr;
+        }
+
+        // create msg
+        auto* msg = uni_can_message_create();
+        if(!msg) {
+            return nullptr;
         }
 
         // Strip flags
         if ((frame.can_id & CAN_EFF_FLAG) != 0) {
             frame.can_id &= CAN_EFF_MASK;
+            msg->flags = static_cast<uni_can_message_flags_t>(msg->flags | UNI_CAN_MSG_FLAG_EXT_ID);
         } else {
             frame.can_id &= CAN_SFF_MASK;
         }
 
         // Fill struct
-        msg.id = frame.can_id;
-        msg.len = frame.can_dlc;
-        memcpy(msg.data.u8, frame.data, sizeof(msg.data));
+        msg->id = frame.can_id;
+        msg->len = frame.can_dlc;
+        memcpy(msg->data.u8, frame.data, sizeof(msg->data));
 
-        return true;
+        return msg;
     }
 
     bool CanChannelSocketcan::TransmitMessage(const uni_can_message_t &msg) {
@@ -77,7 +84,8 @@ namespace Uni::CAN {
         }
 
         can_frame frame{};
-        frame.can_id = msg.id | CAN_EFF_FLAG;
+        if(msg.flags & UNI_CAN_MSG_FLAG_EXT_ID)
+            frame.can_id = msg.id | CAN_EFF_FLAG;
         frame.can_dlc = msg.len;
         memcpy(frame.data, msg.data.u8, sizeof(frame.data));
 
@@ -92,7 +100,7 @@ namespace Uni::CAN {
 
     bool CanChannelSocketcan::Init() { return true; }
 
-    CanChannelSocketcan::CanChannelSocketcan(uni_can_devinfo_t* devInfo, int channel_idx, uint32_t baudrate) {
+    CanChannelSocketcan::CanChannelSocketcan(const uni_can_devinfo_t* devInfo, int channel_idx, uint32_t baudrate) {
         memcpy(&_dev_info, devInfo, sizeof(uni_can_devinfo_t));
         _can_baudrate = baudrate;
     }

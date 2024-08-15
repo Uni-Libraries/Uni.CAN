@@ -26,19 +26,19 @@ namespace Uni::CAN {
 
         bool Close() override;
 
-        bool ReceiveMessage(uni_can_message_t &msg) override;
+        [[nodiscard]] uni_can_message_t* ReceiveMessage() override;
 
         bool TransmitMessage(const uni_can_message_t &msg) override;
 
     protected:
         friend class CanProviderSocketcan;
 
-        explicit CanChannelSocketcan(uni_can_devinfo_t *devInfo, int channel_idx, uint32_t baudrate);
+        explicit CanChannelSocketcan(const uni_can_devinfo_t *devInfo, int channel_idx, uint32_t baudrate);
 
     private:
-        uni_can_devinfo_t _dev_info;
-        uint32_t _can_baudrate = 0;
-        uint32_t _can_restart = 100;
+        uni_can_devinfo_t _dev_info{};
+        uint32_t _can_baudrate{0};
+        uint32_t _can_restart{100};
 
         int _fd = -1;
     };

@@ -19,7 +19,7 @@ namespace Uni::CAN {
 
         virtual bool Close() = 0;
 
-        virtual bool ReceiveMessage(uni_can_message_t &msg) = 0;
+        [[nodiscard]] virtual uni_can_message_t* ReceiveMessage() = 0;
 
         virtual bool TransmitMessage(const uni_can_message_t &msg) = 0;
     };

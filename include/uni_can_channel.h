@@ -24,7 +24,7 @@ bool uni_can_channel_close(void *channel);
 
 bool uni_can_channel_destroy(void *channel);
 
-bool uni_can_channel_receive(void *channel, uni_can_message_t *msg);
+uni_can_message_t* uni_can_channel_receive(void *channel);
 
 bool uni_can_channel_transmit(void *channel, const uni_can_message_t *msg);
 
