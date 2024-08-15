@@ -41,7 +41,7 @@ bool uni_can_channel_destroy(void *channel) {
     return false;
 }
 
-uni_can_message_t* uni_can_channel_receive(void *channel, uni_can_message_t *msg) {
+uni_can_message_t* uni_can_channel_receive(void *channel) {
     uni_can_message_t* result = nullptr;
 
     if (channel) {
