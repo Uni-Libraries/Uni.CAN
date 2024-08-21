@@ -1,9 +1,5 @@
 #pragma once
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 //
 // Includes
 //
@@ -18,7 +14,3 @@ extern "C" {
 #include "uni_can_j1939_msg.h"
 #include "uni_can_j1939_pgn.h"
 #include "uni_can_j1939_signal.h"
-
-#if defined(__cplusplus)
-}
-#endif

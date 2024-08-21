@@ -1,16 +1,11 @@
 #pragma once
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-//
-// Includes
-//
-
 // uni.can
 #include "uni_can_message.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 //
 // Functions
