@@ -3,10 +3,12 @@
 // stdlib
 #include <cstdint>
 #include <memory>
+#include <thread>
 
 // Uni.CAN
 #include "uni_can_devinfo.h"
 #include "can_channel_interface.h"
+#include "common_queue.h"
 
 
 //
@@ -26,9 +28,30 @@ namespace Uni::CAN {
 
         bool Close() override;
 
-        [[nodiscard]] uni_can_message_t* ReceiveMessage() override;
-
         bool TransmitMessage(const uni_can_message_t &msg) override;
+
+        //
+        // Receive
+        //
+    public:
+        [[nodiscard]] uni_can_message_t* ReceiveMessage() override;
+    private:
+        bool receiveMessage();
+    private:
+        SharedQueue<uni_can_message_t*> m_receive_queue;
+
+        //
+        // Thread
+        //
+    private:
+        void threadProc();
+        bool threadStop();
+        bool threadStart();
+
+    private:
+        int _thread_fd = -1;
+        std::thread _thread;
+
 
     protected:
         friend class CanProviderSocketcan;

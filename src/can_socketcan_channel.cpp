@@ -1,7 +1,9 @@
 #if defined(__linux__)
 
 // stdlib
+#include <array>
 #include <cstring>
+#include <fcntl.h>
 #include <unistd.h>
 
 // linux
@@ -9,6 +11,8 @@
 #include <linux/can/error.h>
 #include <linux/can/raw.h>
 #include <net/if.h>
+#include <sys/poll.h>
+#include <sys/eventfd.h>
 
 // libsocketcan
 #include <libsocketcan.h>
@@ -28,55 +32,6 @@ namespace Uni::CAN {
         DeInit();
     }
 
-    uni_can_message_t* CanChannelSocketcan::ReceiveMessage() {
-        if (_fd < 0) {
-            return nullptr;
-        }
-
-        // Set up a file descriptor set only containing one socket
-        fd_set fds_read{};
-        FD_ZERO(&fds_read);
-        FD_SET(_fd, &fds_read);
-
-        // Use select to be able to use a timeout
-        timeval timeout{};
-        if (select(_fd + 1, &fds_read, nullptr, nullptr, &timeout) <= 0) {
-            return nullptr;
-        }
-
-        // Read frame
-        can_frame frame{};
-        ssize_t bytesRead = read(_fd, &frame, sizeof(can_frame));
-        if (bytesRead != sizeof(frame)) {
-            return nullptr;
-        }
-
-        // Check error
-        if ((frame.can_id & CAN_ERR_FLAG) != 0) {
-            return nullptr;
-        }
-
-        // create msg
-        auto* msg = uni_can_message_create();
-        if(!msg) {
-            return nullptr;
-        }
-
-        // Strip flags
-        if ((frame.can_id & CAN_EFF_FLAG) != 0) {
-            frame.can_id &= CAN_EFF_MASK;
-            msg->flags = static_cast<uni_can_message_flags_t>(msg->flags | UNI_CAN_MSG_FLAG_EXT_ID);
-        } else {
-            frame.can_id &= CAN_SFF_MASK;
-        }
-
-        // Fill struct
-        msg->id = frame.can_id;
-        msg->len = frame.can_dlc;
-        memcpy(msg->data.u8, frame.data, sizeof(msg->data));
-
-        return msg;
-    }
 
     bool CanChannelSocketcan::TransmitMessage(const uni_can_message_t &msg) {
         if (_fd < 0) {
@@ -95,6 +50,7 @@ namespace Uni::CAN {
 
         return true;
     }
+
 
     bool CanChannelSocketcan::DeInit() { return true; }
 
@@ -139,6 +95,9 @@ namespace Uni::CAN {
             return false;
         }
         _fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+        if(_fd < 0) {
+            return false;
+        }
 
         // bind socket
         sockaddr_can addr{};
@@ -153,6 +112,12 @@ namespace Uni::CAN {
         int loopback = 0; /* 0 = disabled, 1 = enabled (default) */
         setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_LOOPBACK, &loopback, sizeof(loopback));
 
+        // set nowait
+        fcntl(_fd, F_SETFL, O_NONBLOCK);
+
+        // start thread
+        threadStart();
+
         return true;
     }
 
@@ -162,6 +127,114 @@ namespace Uni::CAN {
         _fd = -1;
         return true;
     }
+
+
+
+    //
+    // Receive
+    //
+
+    uni_can_message_t * CanChannelSocketcan::ReceiveMessage() {
+        if (m_receive_queue.empty()) {
+            return nullptr;
+        }
+
+        return m_receive_queue.pop();
+    }
+
+
+    bool CanChannelSocketcan::receiveMessage() {
+        // Read frame
+        can_frame frame{};
+        ssize_t bytesRead = read(_fd, &frame, sizeof(can_frame));
+        if (bytesRead != sizeof(frame)) {
+            return false;
+        }
+
+        // Check error
+        if ((frame.can_id & CAN_ERR_FLAG) != 0) {
+            return true;
+        }
+
+        // create msg
+        auto* msg = uni_can_message_create();
+        if(!msg) {
+            return true;
+        }
+
+        // Strip flags
+        if ((frame.can_id & CAN_EFF_FLAG) != 0) {
+            frame.can_id &= CAN_EFF_MASK;
+            msg->flags = static_cast<uni_can_message_flags_t>(msg->flags | UNI_CAN_MSG_FLAG_EXT_ID);
+        } else {
+            frame.can_id &= CAN_SFF_MASK;
+        }
+
+        // Fill struct
+        msg->id = frame.can_id;
+        msg->len = frame.can_dlc;
+        memcpy(msg->data.u8, frame.data, sizeof(msg->data));
+
+        // populate
+        m_receive_queue.push(msg);
+
+        return true;
+    }
+
+
+
+    //
+    // Thread
+    //
+
+    void CanChannelSocketcan::threadProc() {
+        _thread_fd = eventfd(0, EFD_NONBLOCK);
+        if(_thread_fd < 0){
+            return;
+        }
+
+        std::array<pollfd, 2> poll_fds{};
+        poll_fds[0].fd = _fd;
+        poll_fds[0].events = POLLIN;
+        poll_fds[1].fd = _thread_fd;
+        poll_fds[1].events = POLLIN;
+
+        while (true) {
+            if(poll(poll_fds.data(), poll_fds.size(), -1)>0) {
+                if (poll_fds[0].revents & POLLIN) {
+                    while(receiveMessage()) {
+                        /* noop */
+                    }
+                }
+                if (poll_fds[1].revents & POLLIN) {
+                    break;
+                }
+            }
+        }
+
+        close(_thread_fd);
+        _thread_fd = -1;
+    }
+
+    bool CanChannelSocketcan::threadStop() {
+        if (!_thread.joinable()) {
+            return false;
+        }
+        if(_thread_fd>-1) {
+            eventfd_write(_thread_fd, 1);
+        }
+        _thread.join();
+        return true;
+    }
+
+    bool CanChannelSocketcan::threadStart() {
+        if (_thread.joinable()) {
+            return false;
+        }
+        _thread = std::thread(&CanChannelSocketcan::threadProc, this);
+        return true;
+    }
+
 } // namespace Uni::CAN
 
 #endif
