@@ -35,9 +35,14 @@ namespace Uni::CAN {
         //
     public:
         [[nodiscard]] uni_can_message_t* ReceiveMessage() override;
+
+        void ReceiveHandlerSet(uni_can_channel_receive_handler_f func, void* cookie) override;
+
     private:
         bool receiveMessage();
     private:
+        uni_can_channel_receive_handler_f m_receive_func{};
+        void* m_receive_cookie{};
         SharedQueue<uni_can_message_t*> m_receive_queue;
 
         //

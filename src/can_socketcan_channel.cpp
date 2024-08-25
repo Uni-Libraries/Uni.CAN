@@ -142,6 +142,11 @@ namespace Uni::CAN {
         return m_receive_queue.pop();
     }
 
+    void CanChannelSocketcan::ReceiveHandlerSet(uni_can_channel_receive_handler_f func, void *cookie) {
+        m_receive_func = func;
+        m_receive_cookie = cookie;
+    }
+
 
     bool CanChannelSocketcan::receiveMessage() {
         // Read frame
@@ -177,6 +182,10 @@ namespace Uni::CAN {
 
         // populate
         m_receive_queue.push(msg);
+
+        if(m_receive_func) {
+            m_receive_func(this, m_receive_cookie);
+        }
 
         return true;
     }

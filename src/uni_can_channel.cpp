@@ -56,3 +56,11 @@ bool uni_can_channel_transmit(void *channel, const uni_can_message_t *msg) {
     }
     return false;
 }
+
+bool uni_can_channel_set_receive_handler(void* channel, uni_can_channel_receive_handler_f func, void *cookie) {
+    if (channel) {
+        static_cast<Uni::CAN::ICanChannel *>(channel)->ReceiveHandlerSet(func, cookie);
+        return true;
+    }
+    return false;
+}
