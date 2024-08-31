@@ -39,8 +39,13 @@ namespace Uni::CAN {
         }
 
         can_frame frame{};
-        if(msg.flags & UNI_CAN_MSG_FLAG_EXT_ID)
-            frame.can_id = msg.id | CAN_EFF_FLAG;
+        if(msg.flags & UNI_CAN_MSG_FLAG_EXT_ID) {
+            frame.can_id = (msg.id & CAN_EFF_MASK) | CAN_EFF_FLAG;
+        }
+        else if(msg.flags & UNI_CAN_MSG_FLAG_STD_ID) {
+            frame.can_id = (msg.id & CAN_SFF_MASK);
+        }
+
         frame.can_dlc = msg.len;
         memcpy(frame.data, msg.data.u8, sizeof(frame.data));
 
@@ -122,6 +127,7 @@ namespace Uni::CAN {
     }
 
     bool CanChannelSocketcan::Close() {
+        threadStop();
         shutdown(_fd, SHUT_RDWR);
         close(_fd);
         _fd = -1;

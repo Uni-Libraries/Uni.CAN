@@ -28,8 +28,9 @@ extern "C" {
 //
 
 typedef enum {
-    UNI_CAN_MSG_FLAG_EXT_ID = 1 << 0,
-    UNI_CAN_MSG_FLAG_TP     = 1 << 1,
+    UNI_CAN_MSG_FLAG_STD_ID = 1 << 0,
+    UNI_CAN_MSG_FLAG_EXT_ID = 1 << 1,
+    UNI_CAN_MSG_FLAG_TP     = 1 << 2,
 } uni_can_message_flags_t;
 
 typedef union {

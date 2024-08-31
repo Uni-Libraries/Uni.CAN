@@ -29,6 +29,7 @@ bool uni_can_j1939_msg_pgn_request(uni_can_message_t *msg, uint32_t pgn_id, uint
 
     if (msg != NULL) {
         msg->len = 3;
+        msg->flags = UNI_CAN_MSG_FLAG_EXT_ID;
         msg->id = uni_can_j1939_pgn_create(J1939_PRIORITY, UNI_CAN_J1939_PGN_REQUEST, addr_dst, addr_src);
         msg->data.u32[0] = pgn_id;
         result = true;
