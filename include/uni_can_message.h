@@ -38,7 +38,7 @@ typedef union {
     uint32_t u32[UNI_CAN_MESSAGE_MAXLEN/4];
     uint16_t u16[UNI_CAN_MESSAGE_MAXLEN/2];
     uint8_t  u8 [UNI_CAN_MESSAGE_MAXLEN/1];
-    void*    ptr;
+    uint8_t* ptr;
 } uni_can_message_data_t;
 
 typedef struct {
