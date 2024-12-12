@@ -124,6 +124,22 @@ TEST_CASE("j1939_sna_send", "j1939") {
         REQUIRE(uni_can_j1939_msg_signal_get(msg, &desc, 3, &val));
         REQUIRE(val.slot == 0);
     }
+    SECTION("several-values-2"){
+        val.slot = 128;
+        REQUIRE(uni_can_j1939_msg_signal_set(msg, &desc, 1, &val));
+
+        val.slot = INFINITY;
+        REQUIRE(uni_can_j1939_msg_signal_set(msg, &desc, 2, &val));
+
+        REQUIRE(uni_can_j1939_msg_signal_get(msg, &desc, 1, &val));
+        REQUIRE(val.slot == 128);
+
+        REQUIRE(uni_can_j1939_msg_signal_get(msg, &desc, 2, &val));
+        REQUIRE(std::isnan(val.slot));
+
+        REQUIRE(uni_can_j1939_msg_signal_get(msg, &desc, 3, &val));
+        REQUIRE(val.slot == 0);
+    }
 
 
     // cleanup

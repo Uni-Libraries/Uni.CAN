@@ -88,22 +88,23 @@ bool uni_can_j1939_msg_signal_set(uni_can_message_t *msg, const uni_can_j1939_ms
                 msg->data.u64[0] &= ~(val_max << offset);
 
                 // serialize value
-                if (signal->type == UNI_CAN_J1939_SIGNAL_SLOT) {
+                uint64_t val;
+                if (signal->type == UNI_CAN_J1939_SIGNAL_SLOT)
+                {
                     if (isnan(value->slot) || isinf(value->slot) || value->slot > signal->val_max)
                     {
-                        msg->data.u64[0] = val_max;
+                        val = val_max;
                     }
                     else
                     {
-                        uint64_t val = (uint64_t)((value->slot - signal->offset) / signal->scale) & val_max;
-                        msg->data.u64[0] |= val << offset;
+                        val = (uint64_t)((value->slot - signal->offset) / signal->scale) & val_max;
                     }
                 }
-                else {
-                    uint64_t val = value->raw_uint64 & val_max;
-                    msg->data.u64[0] |= val << offset;
+                else
+                {
+                    val = value->raw_uint64 & val_max;
                 }
-
+                msg->data.u64[0] |= val << offset;
                 result = true;
             }
             offset += signal->length;
