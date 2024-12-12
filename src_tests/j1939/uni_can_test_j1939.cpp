@@ -45,6 +45,7 @@ TEST_CASE("j1939_sna_parse", "j1939") {
     uni_can_j1939_signal_value_t val{};
     REQUIRE(uni_can_j1939_msg_signal_get(msg, &desc, 1, &val));
     REQUIRE(std::isnan(val.slot));
+    REQUIRE_FALSE(uni_can_j1939_msg_signal_get(msg, &desc, 2, &val));
 
     // cleanup
     delete signals[0];
@@ -54,14 +55,17 @@ TEST_CASE("j1939_sna_parse", "j1939") {
 
 TEST_CASE("j1939_sna_send", "j1939") {
     //signal
-    std::array<uni_can_j1939_signal_t*,2> signals{};
-    signals[0] = new uni_can_j1939_signal_t();
-    signals[0]->id = 1;
-    signals[0]->scale = 1.0;
-    signals[0]->type = UNI_CAN_J1939_SIGNAL_SLOT;
-    signals[0]->length = 8;
-    signals[0]->val_min = 0;
-    signals[0]->val_max = 250;
+    std::array<uni_can_j1939_signal_t*,4> signals{};
+    for (size_t idx = 0; idx < signals.size()-1;idx++)
+    {
+        signals[idx] = new uni_can_j1939_signal_t();
+        signals[idx]->id = idx+1;
+        signals[idx]->scale = 1.0;
+        signals[idx]->type = UNI_CAN_J1939_SIGNAL_SLOT;
+        signals[idx]->length = 8;
+        signals[idx]->val_min = 0;
+        signals[idx]->val_max = 250;
+    }
 
     //msg description
     uni_can_j1939_msg_desc_t desc{};
@@ -106,8 +110,26 @@ TEST_CASE("j1939_sna_send", "j1939") {
         REQUIRE(uni_can_j1939_msg_signal_get(msg, &desc, 1, &val));
         REQUIRE_FALSE(std::isnan(val.slot));
     }
+    SECTION("several-values"){
+        val.slot = 128;
+        REQUIRE(uni_can_j1939_msg_signal_set(msg, &desc, 1, &val));
+        REQUIRE(uni_can_j1939_msg_signal_set(msg, &desc, 2, &val));
+
+        REQUIRE(uni_can_j1939_msg_signal_get(msg, &desc, 1, &val));
+        REQUIRE(val.slot == 128);
+
+        REQUIRE(uni_can_j1939_msg_signal_get(msg, &desc, 2, &val));
+        REQUIRE(val.slot == 128);
+
+        REQUIRE(uni_can_j1939_msg_signal_get(msg, &desc, 3, &val));
+        REQUIRE(val.slot == 0);
+    }
+
 
     // cleanup
-    delete signals[0];
+    for (size_t idx = 0; idx < signals.size()-1;idx++)
+    {
+        delete signals[idx];
+    }
     uni_can_message_free(msg);
 }
