@@ -23,19 +23,34 @@ namespace Uni::CAN {
             return result;
         }
 
-        canboard_t binfo{};
-        for (uint8_t i = 0; i < CI_BRD_NUMS; i++) {
-            binfo.brdnum = i;
-            if (CiBoardInfo(&binfo) == 0) {
-                auto *devinfo = new uni_can_devinfo_t;
-                strcpy(devinfo->device_manufacturer, binfo.manufact);
-                strcpy(devinfo->device_model, binfo.name);
-                strcpy(devinfo->device_provider, GetProviderName());
-                devinfo->device_index = binfo.brdnum;
-                devinfo->device_chancnt = 1;
-                result.push_back(std::shared_ptr<uni_can_devinfo_t>(devinfo));
+        CiInit();
+        for (uint8_t i = 0; i < CI_CHAN_NUMS; i++) {
+            if (CiOpen(i, 0) == 0) {
+                chipstat_t stat{};
+                if (CiChipStat(i, &stat) == 0) {
+
+                    canboard_t binfo{};
+                    binfo.brdnum = stat.brdnum;
+                    if (CiBoardInfo(&binfo) == 0) {
+                        auto* devinfo = new uni_can_devinfo_t{};
+                        strcpy(devinfo->device_manufacturer, binfo.manufact);
+                        strcpy(devinfo->device_model, binfo.name);
+                        strcpy(devinfo->device_provider, GetProviderName());
+                        devinfo->device_index = i;
+                        devinfo->device_chancnt = 1;
+                        CiBoardGetSerial(stat.brdnum, devinfo->device_sn, sizeof(devinfo->device_sn));
+                        strcat(devinfo->device_sn, " CH");
+                        char chnum[8] {};
+                        sprintf(chnum, "%d", i);
+                        strcat(devinfo->device_sn, chnum);
+
+                        result.push_back(std::shared_ptr<uni_can_devinfo_t>(devinfo));
+                    }
+                }
+                CiClose(i);
             }
         }
+
         return result;
     }
 
@@ -48,7 +63,7 @@ namespace Uni::CAN {
     ICanChannel *CanProviderChai::CreateChannel(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate) {
         ICanChannel *result = nullptr;
         if (devInfo != nullptr && baudrate != 0) {
-            result = new CanChannelChai(devInfo, channelIdx, baudrate);
+            result = new CanChannelChai(devInfo, devInfo->device_index, baudrate);
         }
         return result;
     }

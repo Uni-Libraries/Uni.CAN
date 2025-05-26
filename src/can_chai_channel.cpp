@@ -1,7 +1,9 @@
 #if defined(_WIN32)
 
 // stdlib
+#include <chrono>
 #include <cstring>
+#include <thread>
 
 // CHAI SDK
 #include <chai.h>
@@ -9,25 +11,103 @@
 // Uni.CAN
 #include "can_chai_channel.h"
 
+using namespace std::chrono_literals;
+
 namespace Uni::CAN {
+    CanChannelChai::CanChannelChai(uni_can_devinfo_t* devInfo, size_t channelIdx, uint32_t baudrate) {
+        _dev_info = *devInfo;
+        _channel_num = channelIdx;
+        _can_baudrate = baudrate;
+    }
+
     CanChannelChai::~CanChannelChai() {
         Close();
         DeInit();
     }
 
-    bool CanChannelChai::ReceiveMessage(uni_can_message_t &msg) {
-        canmsg_t canmsg_native{};
-        bool result = false;
-
-        if (CiRead(_channel_num, &canmsg_native, 1) == 1) {
-            msg.id = canmsg_native.id;
-            msg.len = canmsg_native.len;
-            memcpy(msg.data.u8, canmsg_native.data, msg.len);
-            result = true;
+    //
+    // Receive
+    //
+    uni_can_message_t* CanChannelChai::ReceiveMessage()
+    {
+        if (m_receive_queue.empty()) {
+            return nullptr;
         }
 
-        return result;
+        return m_receive_queue.pop();
     }
+
+    void CanChannelChai::ReceiveHandlerSet(uni_can_channel_receive_handler_f func, void* cookie)
+    {
+        m_receive_func = func;
+        m_receive_cookie = cookie;
+    }
+
+    bool CanChannelChai::receiveMessage() {
+        canwait_t cw;
+        cw.chan = _channel_num;
+        cw.wflags = CI_WAIT_RC;
+        if (CiWaitEvent(&cw, 1, 10) > 0) {
+
+            canmsg_t canmsg_native{};
+            if (CiRead(_channel_num, &canmsg_native, 1) != 1) {
+                return false;
+            }
+
+            auto* msg = uni_can_message_create();
+            msg->id = canmsg_native.id;
+            msg->len = canmsg_native.len;
+            msg->time_us = canmsg_native.ts;
+            memcpy(msg->data.u8, canmsg_native.data, msg->len);
+
+            m_receive_queue.push(msg);
+            if (m_receive_func) {
+                m_receive_func(this, m_receive_cookie);
+            }
+        }
+
+        return true;
+    }
+
+
+
+    //
+    // Thread
+    //
+
+    void CanChannelChai::threadProc()
+    {
+        while (!_thread_abort) {
+            receiveMessage();
+        }
+
+    }
+
+    bool CanChannelChai::threadStop()
+    {
+        if (!_thread.joinable()) {
+            return false;
+        }
+        _thread_abort = true;
+        _thread.join();
+        return true;
+    }
+
+    bool CanChannelChai::threadStart()
+    {
+        if (_thread.joinable()) {
+            return false;
+        }
+        _thread_abort = false;
+        _thread = std::thread(&CanChannelChai::threadProc, this);
+        return true;
+    }
+
+
+
+    //
+    // Transmit
+    //
 
     bool CanChannelChai::TransmitMessage(const uni_can_message_t &msg) {
         canmsg_t output_frame{};
@@ -40,11 +120,6 @@ namespace Uni::CAN {
         return CiTransmit(_channel_num, &output_frame) == 0;
     }
 
-    CanChannelChai::CanChannelChai(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate) {
-        _dev_info = *devInfo;
-        _channel_num = channelIdx;
-        _can_baudrate = baudrate;
-    }
 
     bool CanChannelChai::DeInit() { return CiClose(_channel_num) == 0; }
 
@@ -105,14 +180,24 @@ namespace Uni::CAN {
     }
 
     bool CanChannelChai::Open() {
+        m_receive_queue.clear();
+
         if (CiStart(_channel_num) != 0) {
             return false;
         }
 
+        // start thread
+        threadStart();
+
         return true;
     }
 
-    bool CanChannelChai::Close() { return CiStop(_channel_num) == 0; }
+    bool CanChannelChai::Close() {
+        threadStop(); 
+        m_receive_queue.clear();
+        return CiStop(_channel_num) == 0; 
+    }
+
 } // namespace Uni::CAN
 
 #endif
