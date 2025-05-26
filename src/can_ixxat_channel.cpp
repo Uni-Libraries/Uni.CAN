@@ -22,13 +22,13 @@ namespace Uni::CAN {
         }
 
         threadStop();
-        _read_queue.clear();
+        m_receive_queue.clear();
 
         return true;
     }
 
     bool CanChannelIxxat::Open() {
-        _read_queue.clear();
+        m_receive_queue.clear();
 
         if (!_can_control) {
             return false;
@@ -37,15 +37,6 @@ namespace Uni::CAN {
         threadStart();
         _can_control->StartLine();
 
-        return true;
-    }
-
-    bool CanChannelIxxat::ReceiveMessage(uni_can_message_t &msg) {
-        if (_read_queue.empty()) {
-            return false;
-        }
-
-        msg = _read_queue.pop();
         return true;
     }
 
@@ -67,7 +58,7 @@ namespace Uni::CAN {
         msg_native[0].uMsgInfo.Bytes.bType = CAN_MSGTYPE_DATA;
         msg_native[0].uMsgInfo.Bytes.bFlags = CAN_MAKE_MSGFLAGS(CAN_LEN_TO_SDLC(msg.len), 0, 0, 0, 1);
 
-        std::memcpy(msg_native->abData, msg.data.u8, msg.len);
+        std::memcpy(msg_native->abData, msg.data.u8, std::size(msg_native->abData));
 
         if (_can_writer->ReleaseWrite(1) != VCI_OK) {
             return false;
@@ -96,6 +87,10 @@ namespace Uni::CAN {
         }
 
         if (_device_bal->OpenSocket(_channel_idx, IID_ICanControl2, (void **) &_can_control) != VCI_OK) {
+            return false;
+        }
+
+        if (_can_socket->GetCapabilities(&_can_capabilities) != VCI_OK) {
             return false;
         }
 
@@ -194,6 +189,7 @@ namespace Uni::CAN {
         return true;
     }
 
+
     bool CanChannelIxxat::DeInit() {
         if (_can_reader) {
             _can_reader->Release();
@@ -241,6 +237,57 @@ namespace Uni::CAN {
     }
 
     //
+    // Receive
+    //
+
+    uni_can_message_t* CanChannelIxxat::ReceiveMessage()
+    {
+        if (m_receive_queue.empty()) {
+            return nullptr;
+        }
+
+        return m_receive_queue.pop();
+    }
+
+    void CanChannelIxxat::ReceiveHandlerSet(uni_can_channel_receive_handler_f func, void* cookie)
+    {
+        m_receive_func = func;
+        m_receive_cookie = cookie;
+    }
+
+    bool CanChannelIxxat::receiveMessage()
+    {
+        // parameter checking
+        if (!_can_reader) {
+            return false;
+        }
+
+        PCANMSG msgs = nullptr;
+
+        uint16_t msgs_count = 0;
+        if (_can_reader->AcquireRead((PVOID*)&msgs, &msgs_count) != VCI_OK) {
+            return false;
+        }
+
+        for (size_t idx = 0; idx < msgs_count; idx++) {
+            if (msgs[idx].uMsgInfo.Bits.type == CAN_MSGTYPE_DATA) {
+                uni_can_message_t* msg = uni_can_message_create();
+                msg->id = msgs[idx].dwMsgId;
+                msg->len = CAN_EDLC_TO_LEN(msgs[idx].uMsgInfo.Bits.dlc);
+                msg->time_us = static_cast<uint64_t>(msgs[idx].dwTime) * 1'000'000 * _can_capabilities.dwTscDivisor / _can_capabilities.dwClockFreq;
+                std::memcpy(msg->data.u8, msgs[idx].abData, std::size(msgs[idx].abData));
+                m_receive_queue.push(msg);
+                if (m_receive_func) {
+                    m_receive_func(this, m_receive_cookie);
+                }
+            }
+        }
+
+        _can_reader->ReleaseRead(msgs_count);
+        return true;
+    }
+
+    //
     // Thread
     //
 
@@ -254,7 +301,7 @@ namespace Uni::CAN {
             }
 
             if (check_ok || check_again) {
-                check_again = readProcess();
+                check_again = receiveMessage();
             }
         }
     }
@@ -276,34 +323,6 @@ namespace Uni::CAN {
 
         _threadTerminate = false;
         _thread = std::thread(&CanChannelIxxat::threadProc, this);
-        return true;
-    }
-
-    //
-    // Read
-    //
-    bool CanChannelIxxat::readProcess() {
-        // parameter checking
-        if (!_can_reader) {
-            return false;
-        }
-
-        PCANMSG msgs = nullptr;
-
-        uint16_t msgs_count = 0;
-        if (_can_reader->AcquireRead((PVOID *) &msgs, &msgs_count) != VCI_OK) {
-            return false;
-        }
-
-        for (size_t idx = 0; idx < msgs_count; idx++) {
-            uni_can_message_t msg{};
-            msg.id = msgs[idx].dwMsgId;
-            msg.len = CAN_EDLC_TO_LEN(msgs[idx].uMsgInfo.Bits.dlc);
-            std::memcpy(msg.data.u8, msgs[idx].abData, msg.len);
-            _read_queue.push(msg);
-        }
-
-        _can_reader->ReleaseRead(msgs_count);
         return true;
     }
 } // namespace Uni::CAN
