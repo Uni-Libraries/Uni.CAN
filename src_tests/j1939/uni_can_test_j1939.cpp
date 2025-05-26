@@ -3,6 +3,7 @@
 //
 
 // stdlib
+#include <array>
 #include <cmath>
 
 // catch2
