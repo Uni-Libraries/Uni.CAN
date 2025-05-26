@@ -1,7 +1,6 @@
 CPMAddPackage(
         NAME libsocketcan
         GITHUB_REPOSITORY linux-can/libsocketcan
-        GIT_SHALLOW 1
         VERSION 0.0.12
         DOWNLOAD_ONLY True
 )

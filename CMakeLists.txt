@@ -9,13 +9,15 @@ project(uni.can)
 
 include(cmake/cpm.cmake)
 include(cmake/cpm-uni.common.cmake)
-
-if(PROJECT_IS_TOP_LEVEL)
-	include(cmake/cpm-catch2.cmake)
-endif()
-
 if(NOT WIN32)
 	include(cmake/cpm-libsocketcan.cmake)
+endif()
+
+if(PROJECT_IS_TOP_LEVEL)
+	include(cmake/cpm-fmtlib.cmake)
+	include(cmake/cpm-nlohmann_json.cmake)
+	include(cmake/cpm-catch2.cmake)
+	include(cmake/cpm-uni.gui.cmake)
 endif()
 
 
@@ -98,6 +100,16 @@ endif()
 if(NOT WIN32)
 	target_link_libraries(uni.can PUBLIC libsocketcan)
 endif()
+
+
+
+#
+# Uni.CAN GUI
+#
+
+if(PROJECT_IS_TOP_LEVEL)
+endif()
+
 
 
 #
