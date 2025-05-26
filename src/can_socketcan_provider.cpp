@@ -59,7 +59,8 @@ namespace Uni::CAN {
     ICanChannel* CanProviderSocketcan::CreateChannel(uni_can_devinfo_t* devInfo, size_t channelIdx, uint32_t baudrate) {
         ICanChannel* result = nullptr;
         if(devInfo != nullptr && baudrate != 0) {
-            result = new CanChannelSocketcan(devInfo, channelIdx, baudrate);
+            result =
+                new CanChannelSocketcan(devInfo, channelIdx, baudrate);
         }
         return result;
     }

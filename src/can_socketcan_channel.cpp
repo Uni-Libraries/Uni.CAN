@@ -62,14 +62,15 @@ namespace Uni::CAN {
     bool CanChannelSocketcan::Init() { return true; }
 
     CanChannelSocketcan::CanChannelSocketcan(const uni_can_devinfo_t* devInfo, int channel_idx, uint32_t baudrate) {
-        memcpy(&_dev_info, devInfo, sizeof(uni_can_devinfo_t));
-        _can_baudrate = baudrate;
+        memcpy(&_info_dev, devInfo, sizeof(uni_can_devinfo_t));
+        _info_baudrate = baudrate;
+        _info_chidx = channel_idx;
     }
 
     bool CanChannelSocketcan::Open() {
         m_receive_queue.clear();
 
-        const auto *can_name = _dev_info.device_sn;
+        const auto *can_name = _info_dev.device_sn;
 
         // stop interface
         can_do_stop(can_name);
@@ -77,8 +78,8 @@ namespace Uni::CAN {
         // set bittiming
         can_bittiming bittiming{};
         can_get_bittiming(can_name, &bittiming);
-        if (bittiming.bitrate != _can_baudrate) {
-            bittiming.bitrate = _can_baudrate;
+        if (bittiming.bitrate != _info_baudrate) {
+            bittiming.bitrate = _info_baudrate;
             if (can_set_bittiming(can_name, &bittiming) < 0) {
                 return false;
             }
@@ -109,7 +110,7 @@ namespace Uni::CAN {
         // bind socket
         sockaddr_can addr{};
         addr.can_family = AF_CAN;
-        addr.can_ifindex = _dev_info.device_index;
+        addr.can_ifindex = _info_dev.device_index;
         if (bind(_fd, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) == -1) {
             _fd = -1;
             return false;
@@ -140,24 +141,41 @@ namespace Uni::CAN {
 
 
     //
-    // Receive
+    // Thread
     //
 
-    uni_can_message_t * CanChannelSocketcan::ReceiveMessage() {
-        if (m_receive_queue.empty()) {
-            return nullptr;
+    void CanChannelSocketcan::threadProc() {
+        _time_start = std::chrono::steady_clock::now();
+        _thread_fd = eventfd(0, EFD_NONBLOCK);
+        if(_thread_fd < 0){
+            return;
         }
 
-        return m_receive_queue.pop();
+        std::array<pollfd, 2> poll_fds{};
+        poll_fds[0].fd = _fd;
+        poll_fds[0].events = POLLIN;
+        poll_fds[1].fd = _thread_fd;
+        poll_fds[1].events = POLLIN;
+
+        while (true) {
+            if(poll(poll_fds.data(), poll_fds.size(), -1)>0) {
+                if (poll_fds[0].revents & POLLIN) {
+                    while(threadProcReceive()) {
+                        /* noop */
+                    }
+                }
+                if (poll_fds[1].revents & POLLIN) {
+                    break;
+                }
+            }
+        }
+
+        close(_thread_fd);
+        _thread_fd = -1;
     }
 
-    void CanChannelSocketcan::ReceiveHandlerSet(uni_can_channel_receive_handler_f func, void *cookie) {
-        m_receive_func = func;
-        m_receive_cookie = cookie;
-    }
-
-
-    bool CanChannelSocketcan::receiveMessage() {
+    bool CanChannelSocketcan::threadProcReceive()
+    {
         // Read frame
         can_frame frame{};
         ssize_t bytesRead = read(_fd, &frame, sizeof(can_frame));
@@ -189,7 +207,7 @@ namespace Uni::CAN {
         // Fill struct
         msg->id = frame.can_id;
         msg->len = frame.can_dlc;
-        msg->time_us = std::chrono::duration_cast<std::chrono::microseconds>(frame_time - _can_starttime).count();
+        msg->time_us = std::chrono::duration_cast<std::chrono::microseconds>(frame_time - _time_start).count();
         memcpy(msg->data.u8, frame.data, sizeof(msg->data));
 
         // populate
@@ -202,60 +220,13 @@ namespace Uni::CAN {
         return true;
     }
 
-
-
-    //
-    // Thread
-    //
-
-    void CanChannelSocketcan::threadProc() {
-        _can_starttime = std::chrono::steady_clock::now();
-        _thread_fd = eventfd(0, EFD_NONBLOCK);
-        if(_thread_fd < 0){
-            return;
-        }
-
-        std::array<pollfd, 2> poll_fds{};
-        poll_fds[0].fd = _fd;
-        poll_fds[0].events = POLLIN;
-        poll_fds[1].fd = _thread_fd;
-        poll_fds[1].events = POLLIN;
-
-        while (true) {
-            if(poll(poll_fds.data(), poll_fds.size(), -1)>0) {
-                if (poll_fds[0].revents & POLLIN) {
-                    while(receiveMessage()) {
-                        /* noop */
-                    }
-                }
-                if (poll_fds[1].revents & POLLIN) {
-                    break;
-                }
-            }
-        }
-
-        close(_thread_fd);
-        _thread_fd = -1;
-    }
-
     bool CanChannelSocketcan::threadStop() {
-        if (!_thread.joinable()) {
-            return false;
-        }
         if(_thread_fd>-1) {
             eventfd_write(_thread_fd, 1);
         }
-        _thread.join();
-        return true;
+        return CanChannelBase::threadStop();
     }
 
-    bool CanChannelSocketcan::threadStart() {
-        if (_thread.joinable()) {
-            return false;
-        }
-        _thread = std::thread(&CanChannelSocketcan::threadProc, this);
-        return true;
-    }
 
 } // namespace Uni::CAN
 
