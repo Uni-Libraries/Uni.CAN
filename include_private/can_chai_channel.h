@@ -3,6 +3,7 @@
 // stdlib
 #include <cstdint>
 #include <memory>
+#include <thread>
 
 // uni.CAN
 #include "uni_can_channel.h"
