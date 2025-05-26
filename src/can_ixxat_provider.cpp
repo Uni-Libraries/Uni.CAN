@@ -1,4 +1,4 @@
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 
 // VCI SDK
 #include <vcisdk.h>

@@ -49,8 +49,7 @@ endif()
 #
 # HMS IXXAT VCI4
 #
-
-if(MSVC)
+if(WIN32)
 	add_library(ixxat-vci SHARED IMPORTED)
 
 	set_target_properties(ixxat-vci PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hms-ixxat/inc")
@@ -62,6 +61,8 @@ if(MSVC)
 		set_target_properties(ixxat-vci PROPERTIES IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hms-ixxat/bin32/vciapi.dll")
 		set_target_properties(ixxat-vci PROPERTIES IMPORTED_IMPLIB   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hms-ixxat/lib32/Release/vciapi.lib")
 	endif()
+
+	target_sources(ixxat-vci INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hms-ixxat/src/guid.c")
 endif()
 
 
@@ -72,31 +73,32 @@ endif()
 
 add_library(uni.can STATIC)
 
+# sources
 file(GLOB_RECURSE uni.can_SRCS CONFIGURE_DEPENDS "src/*.c" "src/*.cpp" "src/*.cc" "src/*.cxx")
 file(GLOB_RECURSE uni.can_HDRS CONFIGURE_DEPENDS "include/*.h" "include_private/*.h")
-
 target_sources(uni.can PRIVATE ${uni.can_SRCS} ${uni.can_HDRS})
 
+# includes
 target_include_directories(uni.can PUBLIC include)
 target_include_directories(uni.can PRIVATE include_private)
 target_include_directories(uni.can PRIVATE src)
 
+# defines
+target_compile_definitions(uni.can PRIVATE NOMINMAX)
+
+# properties
 set_target_properties(uni.can PROPERTIES CXX_STANDARD 17)
 set_target_properties(uni.can PROPERTIES CXX_STANDARD_REQUIRED ON)
 
+# link
 target_link_libraries(uni.can PUBLIC uni.common)
-
 if(WIN32)
 	target_link_libraries(uni.can PUBLIC chai)
-	if(MSVC)
-		target_link_libraries(uni.can PUBLIC ixxat-vci)
-	endif()
+	target_link_libraries(uni.can PUBLIC ixxat-vci)
 endif()
-
 if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0)
 	target_link_libraries(uni.can PUBLIC stdc++fs)
 endif()
-
 if(NOT WIN32)
 	target_link_libraries(uni.can PUBLIC libsocketcan)
 endif()

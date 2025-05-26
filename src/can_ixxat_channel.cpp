@@ -1,4 +1,7 @@
-#if defined(_MSC_VER)
+#if defined(_WIN32)
+
+// stdlib
+#include <cstring>
 
 // Uni.CAN
 #include "can_ixxat_channel.h"

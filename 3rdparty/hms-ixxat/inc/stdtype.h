@@ -40,6 +40,11 @@
   #define _COMPILER_ NILABWIN_C
 #endif
 
+#ifdef __MINGW32__
+  #define MINGW_C  __MINGW32__
+  #define _COMPILER_ MINGW_C
+#endif
+
 #ifndef _COMPILER_
   #error "Compiler not supported"
 #endif
@@ -107,6 +112,12 @@
     #define _M_IX86_ _M_IX86
     #define _M_BYTE_ORDER _LITTLE_ENDIAN
   #endif
+#elif defined(MINGW_C)
+  #if defined(__x86_64__)
+    #define _M_BITS 64
+    #define _M_IX86_ _M_IX86
+    #define _M_BYTE_ORDER _LITTLE_ENDIAN
+  #endif
 #endif
 
 #ifndef _M_BITS
@@ -157,6 +168,13 @@
   #define __UINT8  unsigned __INT8
 #endif
 
+#ifdef MINGW_C
+  #define __INT8            __int8
+  #define __SINT8  signed   __INT8
+  #define __UINT8  unsigned __INT8
+#endif
+
+
 
 //------------------------------------------------------------------------
 // 16 bit integer
@@ -197,6 +215,11 @@
   #define __UINT16 unsigned __INT16
 #endif
 
+#ifdef MINGW_C
+  #define __INT16           __int16
+  #define __SINT16 signed   __INT16
+  #define __UINT16 unsigned __INT16
+#endif
 
 //------------------------------------------------------------------------
 // 32 bit integer
@@ -237,6 +260,11 @@
   #define __UINT32 unsigned __INT32
 #endif
 
+#ifdef MINGW_C
+  #define __INT32           __int32
+  #define __SINT32 signed   __INT32
+  #define __UINT32 unsigned __INT32
+#endif
 
 //------------------------------------------------------------------------
 // 64 bit integer
@@ -285,6 +313,12 @@
   #endif
 #endif
 
+#ifdef MINGW_C
+  #define __INT64           __int64
+  #define __SINT64 signed   __INT64
+  #define __UINT64 unsigned __INT64
+#endif
+
 
 /*****************************************************************************
  * alignment definitions
@@ -311,7 +345,7 @@
 // 8 bit alignment
 //
 #ifndef ALIGN1
-  #if (MICROSOFT_C >= 1300)
+  #if (MICROSOFT_C >= 1300 || MINGW_C)
     #define ALIGN1 __declspec(align(1))
   #else
     #define ALIGN1
@@ -322,7 +356,7 @@
 // 16 bit alignment
 //
 #ifndef ALIGN2
-  #if (MICROSOFT_C >= 1300)
+  #if (MICROSOFT_C >= 1300 || MINGW_C)
     #define ALIGN2 __declspec(align(2))
   #else
     #define ALIGN2
@@ -333,7 +367,7 @@
 // 32 bit alignment
 //
 #ifndef ALIGN4
-  #if (MICROSOFT_C >= 1300)
+  #if (MICROSOFT_C >= 1300 || MINGW_C)
     #define ALIGN4 __declspec(align(4))
   #else
     #define ALIGN4
@@ -344,7 +378,7 @@
 // 64 bit alignment
 //
 #ifndef ALIGN8
-  #if (MICROSOFT_C >= 1300)
+  #if (MICROSOFT_C >= 1300 || MINGW_C)
     #define ALIGN8 __declspec(align(8))
   #else
     #define ALIGN8
@@ -355,7 +389,7 @@
 // 128 bit alignment
 //
 #ifndef ALIGN16
-  #if (MICROSOFT_C >= 1300)
+  #if (MICROSOFT_C >= 1300 || MINGW_C)
     #define ALIGN16 __declspec(align(16))
   #else
     #define ALIGN16
@@ -366,7 +400,7 @@
 // 256 bit alignment
 //
 #ifndef ALIGN32
-  #if (MICROSOFT_C >= 1300)
+  #if (MICROSOFT_C >= 1300  || MINGW_C)
     #define ALIGN32 __declspec(align(32))
   #else
     #define ALIGN32
@@ -388,7 +422,7 @@
 
 
 #ifndef DECLSPEC_ALLOC
-  #if (MICROSOFT_C >= 1100)
+  #if (MICROSOFT_C >= 1100 || MINGW_C)
     #define DECLSPEC_ALLOC(x) __declspec(allocate(x))
   #else
     #define DECLSPEC_ALLOC(x)
@@ -1075,7 +1109,7 @@ typedef const CLSID*     PCCLSID;
 // Results:
 //  Returns the smaller of the two arguments.
 //------------------------------------------------------------------------
-#ifndef min
+#if !defined(min) && !defined(MINGW_C)
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
@@ -1093,7 +1127,7 @@ typedef const CLSID*     PCCLSID;
 // Results:
 //  Returns the larger of the two arguments.
 //------------------------------------------------------------------------
-#ifndef max
+#if !defined(max) && !defined(MINGW_C)
 #define max(a,b) (((a) > (b)) ? (a) : (b))
 #endif
 

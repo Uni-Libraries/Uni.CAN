@@ -29,10 +29,8 @@ size_t uni_can_factory_refresh() {
     // providers
     if (g_providers.empty()) {
 #if defined(_WIN32)
-        g_providers.push_back(std::shared_ptr<Uni::CAN::ICanProvider>(new Uni::CAN::CanProviderChai()));
-#endif
-#if defined(_MSC_VER)
-        g_providers.push_back(std::shared_ptr<Uni::CAN::ICanProvider>(new Uni::CAN::CanProviderIxxat()));
+        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderChai>());
+        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderIxxat>());
 #endif
 #if defined(__linux__)
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderSocketcan>());
