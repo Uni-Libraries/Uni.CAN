@@ -42,9 +42,10 @@ typedef union {
 } uni_can_message_data_t;
 
 typedef struct {
-    uni_can_message_data_t data;
+    uint64_t time_us;
     uint32_t id;
     uni_can_message_flags_t flags;
+    uni_can_message_data_t data;
     uint16_t len;
 } uni_can_message_t;
 

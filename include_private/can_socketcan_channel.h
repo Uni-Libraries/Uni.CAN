@@ -68,6 +68,8 @@ namespace Uni::CAN {
         uint32_t _can_baudrate{0};
         uint32_t _can_restart{100};
 
+        std::chrono::steady_clock::time_point _can_starttime{};
+
         int _fd = -1;
     };
 } // namespace Uni::CAN

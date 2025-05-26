@@ -67,6 +67,8 @@ namespace Uni::CAN {
     }
 
     bool CanChannelSocketcan::Open() {
+        m_receive_queue.clear();
+
         const auto *can_name = _dev_info.device_sn;
 
         // stop interface
@@ -131,6 +133,7 @@ namespace Uni::CAN {
         shutdown(_fd, SHUT_RDWR);
         close(_fd);
         _fd = -1;
+        m_receive_queue.clear();
         return true;
     }
 
@@ -162,6 +165,8 @@ namespace Uni::CAN {
             return false;
         }
 
+        auto frame_time = std::chrono::steady_clock::now();
+
         // Check error
         if ((frame.can_id & CAN_ERR_FLAG) != 0) {
             return true;
@@ -184,6 +189,7 @@ namespace Uni::CAN {
         // Fill struct
         msg->id = frame.can_id;
         msg->len = frame.can_dlc;
+        msg->time_us = std::chrono::duration_cast<std::chrono::microseconds>(frame_time - _can_starttime).count();
         memcpy(msg->data.u8, frame.data, sizeof(msg->data));
 
         // populate
@@ -203,6 +209,7 @@ namespace Uni::CAN {
     //
 
     void CanChannelSocketcan::threadProc() {
+        _can_starttime = std::chrono::steady_clock::now();
         _thread_fd = eventfd(0, EFD_NONBLOCK);
         if(_thread_fd < 0){
             return;
