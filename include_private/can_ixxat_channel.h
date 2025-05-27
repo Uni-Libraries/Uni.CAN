@@ -3,7 +3,6 @@
 #if defined(_WIN32)
 
 // stdlib
-#include <deque>
 #include <memory>
 #include <thread>
 
@@ -12,39 +11,25 @@
 
 // Uni.CAN
 #include "can_socketcan_channel.h"
-#include "common_queue.h"
-
 namespace Uni::CAN {
-    class CanChannelIxxat : public ICanChannel {
-        //
-        // ICanChannel
-        //
+    class CanChannelIxxat : public CanChannelBase {
+        // Ctor
     public:
+        explicit CanChannelIxxat(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate);
         ~CanChannelIxxat() override;
 
+        // ICanChannel
+    public:
         bool Init() override;
-
         bool DeInit() override;
-
         bool Open() override;
-
         bool Close() override;
-
         bool TransmitMessage(const uni_can_message_t &msg) override;
 
-        //
-        // Ctor
-        //
-    protected:
-        friend class CanProviderIxxat;
-
-        explicit CanChannelIxxat(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate);
-
-        //
-        // Init
-        //
+        // thread
     private:
-        bool InitLine();
+        void threadProc() override;
+        bool threadProcReceive();
 
         //
         // Consts
@@ -56,29 +41,18 @@ namespace Uni::CAN {
         static constexpr uint16_t wTxThreshold = 1;
         static constexpr uint16_t _const_read_timeout_ms = 100;
 
-        //
-        // Vars
-        //
+        // ixxat specific
     private:
-        uni_can_devinfo_t _dev_info{};
-
         IVciDeviceManager *_device_mgr = nullptr;
         IVciDevice *_device = nullptr;
         IBalObject *_device_bal = nullptr;
-
-        size_t _channel_idx;
-
         ICanSocket *_can_socket = nullptr;
         ::ICanChannel *_can_channel = nullptr;
         ICanControl2 *_can_control = nullptr;
-
         PFIFOREADER _can_reader = nullptr;
         HANDLE _can_reader_event = nullptr;
         CANCAPABILITIES _can_capabilities{};
-
         PFIFOWRITER _can_writer = nullptr;
-
-        uint32_t _can_baudrate = 0;
     };
 } // namespace Uni::CAN
 

@@ -36,14 +36,14 @@ namespace Uni::CAN
         if (!_thread.joinable()) {
             return false;
         }
+        _thread_abort = true;
         _thread.join();
         return true;
     }
 
     bool CanChannelBase::threadStart() {
-        if (_thread.joinable()) {
-            return false;
-        }
+        threadStop();
+        _thread_abort = false;
         _thread = std::thread(&CanChannelBase::threadProc, this);
         return true;
     }

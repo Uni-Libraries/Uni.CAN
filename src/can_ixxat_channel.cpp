@@ -9,9 +9,9 @@
 
 namespace Uni::CAN {
     CanChannelIxxat::CanChannelIxxat(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate) {
-        _dev_info = *devInfo;
-        _channel_idx = channelIdx;
-        _can_baudrate = baudrate;
+        _info_dev = *devInfo;
+        _info_chidx = channelIdx;
+        _info_baudrate = baudrate;
     }
 
     CanChannelIxxat::~CanChannelIxxat() {
@@ -76,7 +76,7 @@ namespace Uni::CAN {
         }
 
         VCIID vciid{};
-        vciid.AsInt64 = _dev_info.device_index;
+        vciid.AsInt64 = _info_dev.device_index;
         if (_device_mgr->OpenDevice(vciid, &_device) != VCI_OK) {
             return false;
         }
@@ -85,11 +85,11 @@ namespace Uni::CAN {
             return false;
         }
 
-        if (_device_bal->OpenSocket(_channel_idx, IID_ICanSocket, (void **) &_can_socket) != VCI_OK) {
+        if (_device_bal->OpenSocket(_info_chidx, IID_ICanSocket, (void **) &_can_socket) != VCI_OK) {
             return false;
         }
 
-        if (_device_bal->OpenSocket(_channel_idx, IID_ICanControl2, (void **) &_can_control) != VCI_OK) {
+        if (_device_bal->OpenSocket(_info_chidx, IID_ICanControl2, (void **) &_can_control) != VCI_OK) {
             return false;
         }
 
@@ -119,20 +119,12 @@ namespace Uni::CAN {
         _can_reader_event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
         _can_reader->AssignEvent(_can_reader_event);
 
-        if (!InitLine()) {
-            return false;
-        }
-
-        return true;
-    }
-
-    bool CanChannelIxxat::InitLine() {
         if (_can_channel->Activate() != VCI_OK) {
             return false;
         }
 
         CANBTP baudrate = CAN_BTP_EMPTY;
-        switch (_can_baudrate) {
+        switch (_info_baudrate) {
             case 5'000:
                 baudrate = CAN_BTP_5KB;
                 break;
@@ -240,26 +232,25 @@ namespace Uni::CAN {
     }
 
     //
-    // Receive
+    // Thread
     //
 
-    uni_can_message_t* CanChannelIxxat::ReceiveMessage()
-    {
-        if (m_receive_queue.empty()) {
-            return nullptr;
+    void CanChannelIxxat::threadProc() {
+        bool check_ok = false;
+        bool check_again = false;
+
+        while (!_thread_abort) {
+            if (!check_again) {
+                check_ok = WaitForSingleObject(_can_reader_event, _const_read_timeout_ms) == WAIT_OBJECT_0;
+            }
+
+            if (check_ok || check_again) {
+                check_again = receiveMessage();
+            }
         }
-
-        return m_receive_queue.pop();
     }
 
-    void CanChannelIxxat::ReceiveHandlerSet(uni_can_channel_receive_handler_f func, void* cookie)
-    {
-        m_receive_func = func;
-        m_receive_cookie = cookie;
-    }
-
-    bool CanChannelIxxat::receiveMessage()
-    {
+    bool CanChannelIxxat::threadProcReceive() {
         // parameter checking
         if (!_can_reader) {
             return false;
@@ -287,45 +278,6 @@ namespace Uni::CAN {
         }
 
         _can_reader->ReleaseRead(msgs_count);
-        return true;
-    }
-
-    //
-    // Thread
-    //
-
-    void CanChannelIxxat::threadProc() {
-        bool check_ok = false;
-        bool check_again = false;
-
-        while (!_threadTerminate) {
-            if (!check_again) {
-                check_ok = WaitForSingleObject(_can_reader_event, _const_read_timeout_ms) == WAIT_OBJECT_0;
-            }
-
-            if (check_ok || check_again) {
-                check_again = receiveMessage();
-            }
-        }
-    }
-
-    bool CanChannelIxxat::threadStop() {
-        if (!_thread.joinable()) {
-            return false;
-        }
-
-        _threadTerminate = true;
-        _thread.join();
-        return true;
-    }
-
-    bool CanChannelIxxat::threadStart() {
-        if (_thread.joinable()) {
-            return false;
-        }
-
-        _threadTerminate = false;
-        _thread = std::thread(&CanChannelIxxat::threadProc, this);
         return true;
     }
 } // namespace Uni::CAN

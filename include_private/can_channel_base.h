@@ -50,8 +50,9 @@ namespace Uni::CAN
         virtual void threadProc() = 0;
         virtual bool threadStop();
         bool threadStart();
-    private:
+    protected:
         bool _thread_abort{};
+    private:
         std::thread _thread;
 
         //

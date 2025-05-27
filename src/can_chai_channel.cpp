@@ -15,9 +15,9 @@ using namespace std::chrono_literals;
 
 namespace Uni::CAN {
     CanChannelChai::CanChannelChai(uni_can_devinfo_t* devInfo, size_t channelIdx, uint32_t baudrate) {
-        _dev_info = *devInfo;
-        _channel_num = channelIdx;
-        _can_baudrate = baudrate;
+        _info_dev = *devInfo;
+        _info_chidx = channelIdx;
+        _info_baudrate = baudrate;
     }
 
     CanChannelChai::~CanChannelChai() {
@@ -25,32 +25,27 @@ namespace Uni::CAN {
         DeInit();
     }
 
+
+
     //
-    // Receive
+    // Thread
     //
-    uni_can_message_t* CanChannelChai::ReceiveMessage()
+
+    void CanChannelChai::threadProc()
     {
-        if (m_receive_queue.empty()) {
-            return nullptr;
+        while (!_thread_abort) {
+            threadProcReceive();
         }
-
-        return m_receive_queue.pop();
     }
 
-    void CanChannelChai::ReceiveHandlerSet(uni_can_channel_receive_handler_f func, void* cookie)
-    {
-        m_receive_func = func;
-        m_receive_cookie = cookie;
-    }
-
-    bool CanChannelChai::receiveMessage() {
+    bool CanChannelChai::threadProcReceive() {
         canwait_t cw;
-        cw.chan = _channel_num;
+        cw.chan = _info_chidx;
         cw.wflags = CI_WAIT_RC;
         if (CiWaitEvent(&cw, 1, 10) > 0) {
 
             canmsg_t canmsg_native{};
-            if (CiRead(_channel_num, &canmsg_native, 1) != 1) {
+            if (CiRead(_info_chidx, &canmsg_native, 1) != 1) {
                 return false;
             }
 
@@ -69,42 +64,6 @@ namespace Uni::CAN {
         return true;
     }
 
-
-
-    //
-    // Thread
-    //
-
-    void CanChannelChai::threadProc()
-    {
-        while (!_thread_abort) {
-            receiveMessage();
-        }
-
-    }
-
-    bool CanChannelChai::threadStop()
-    {
-        if (!_thread.joinable()) {
-            return false;
-        }
-        _thread_abort = true;
-        _thread.join();
-        return true;
-    }
-
-    bool CanChannelChai::threadStart()
-    {
-        if (_thread.joinable()) {
-            return false;
-        }
-        _thread_abort = false;
-        _thread = std::thread(&CanChannelChai::threadProc, this);
-        return true;
-    }
-
-
-
     //
     // Transmit
     //
@@ -117,21 +76,21 @@ namespace Uni::CAN {
         output_frame.ts = 0;
 
         memcpy(output_frame.data, msg.data.u8, msg.len);
-        return CiTransmit(_channel_num, &output_frame) == 0;
+        return CiTransmit(_info_chidx, &output_frame) == 0;
     }
 
 
-    bool CanChannelChai::DeInit() { return CiClose(_channel_num) == 0; }
+    bool CanChannelChai::DeInit() { return CiClose(_info_chidx) == 0; }
 
     bool CanChannelChai::Init() {
-        if (CiOpen(_channel_num, CIO_CAN11 | CIO_CAN29) != 0) {
+        if (CiOpen(_info_chidx, CIO_CAN11 | CIO_CAN29) != 0) {
             return false;
         }
 
         uint8_t bt0 = 0;
         uint8_t bt1 = 0;
 
-        switch (_can_baudrate) {
+        switch (_info_baudrate) {
         case 10'000:
             bt0 = BCI_10K_bt0;
             bt1 = BCI_10K_bt1;
@@ -172,7 +131,7 @@ namespace Uni::CAN {
             break;
         }
 
-        if (CiSetBaud(_channel_num, bt0, bt1) != 0) {
+        if (CiSetBaud(_info_chidx, bt0, bt1) != 0) {
             return false;
         }
 
@@ -182,7 +141,7 @@ namespace Uni::CAN {
     bool CanChannelChai::Open() {
         m_receive_queue.clear();
 
-        if (CiStart(_channel_num) != 0) {
+        if (CiStart(_info_chidx) != 0) {
             return false;
         }
 
@@ -195,7 +154,7 @@ namespace Uni::CAN {
     bool CanChannelChai::Close() {
         threadStop(); 
         m_receive_queue.clear();
-        return CiStop(_channel_num) == 0; 
+        return CiStop(_info_chidx) == 0;
     }
 
 } // namespace Uni::CAN
