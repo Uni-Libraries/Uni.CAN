@@ -245,7 +245,7 @@ namespace Uni::CAN {
             }
 
             if (check_ok || check_again) {
-                check_again = receiveMessage();
+                check_again = threadProcReceive();
             }
         }
     }
