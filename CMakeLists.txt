@@ -66,6 +66,7 @@ if(WIN32)
 endif()
 
 include(cmake/3rdparty-peak.cmake)
+include(cmake/3rdparty-vector.cmake)
 
 
 
@@ -98,6 +99,7 @@ if(WIN32)
 	target_link_libraries(uni.can PUBLIC chai)
 	target_link_libraries(uni.can PUBLIC ixxat-vci)
 	target_link_libraries(uni.can PUBLIC pcanbasic)
+	target_link_libraries(uni.can PUBLIC vxlapi)
 endif()
 if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0)
 	target_link_libraries(uni.can PUBLIC stdc++fs)
