@@ -65,6 +65,8 @@ if(WIN32)
 	target_sources(ixxat-vci INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hms-ixxat/src/guid.c")
 endif()
 
+include(cmake/3rdparty-peak.cmake)
+
 
 
 #
@@ -95,6 +97,7 @@ target_link_libraries(uni.can PUBLIC uni.common)
 if(WIN32)
 	target_link_libraries(uni.can PUBLIC chai)
 	target_link_libraries(uni.can PUBLIC ixxat-vci)
+	target_link_libraries(uni.can PUBLIC pcanbasic)
 endif()
 if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0)
 	target_link_libraries(uni.can PUBLIC stdc++fs)

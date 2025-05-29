@@ -11,6 +11,7 @@
 #include "can_chai_provider.h"
 #include "can_ixxat_provider.h"
 #include "can_socketcan_provider.h"
+#include "backend_peak/can_peak_provider.h"
 
 
 //
@@ -31,6 +32,7 @@ size_t uni_can_factory_refresh() {
 #if defined(_WIN32)
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderChai>());
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderIxxat>());
+        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderPeak>());
 #endif
 #if defined(__linux__)
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderSocketcan>());
