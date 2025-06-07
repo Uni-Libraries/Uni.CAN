@@ -1,4 +1,3 @@
-enable_testing()
 include(Catch)
 
 function(uni_can_add_test test_path)
