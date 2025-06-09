@@ -2,6 +2,10 @@
 
 #if defined(_WIN32)
 
+//
+// Includes
+//
+
 // stdlib
 #include <memory>
 #include <thread>
@@ -10,7 +14,14 @@
 #include <vcisdk.h>
 
 // Uni.CAN
-#include "can_socketcan_channel.h"
+#include "can_channel_base.h"
+
+
+
+//
+// Class
+//
+
 namespace Uni::CAN {
     class CanChannelIxxat : public CanChannelBase {
         // Ctor

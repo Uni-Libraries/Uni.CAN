@@ -1,7 +1,8 @@
 CPMAddPackage(
         NAME uni.common
         GITHUB_REPOSITORY Uni-Libraries/Uni.Common
-        GIT_TAG 3f15a56a61e8ef05045901cd86ebdeefd2d06cd3
+        GIT_TAG df7949c8999be09d4b924dd3b58a9de96a6b8b19
+        VERSION 2025.06.07
         OPTIONS
             "BUILD_SHARED_LIBS OFF"
 )

@@ -67,6 +67,7 @@ endif()
 
 include(cmake/3rdparty-peak.cmake)
 include(cmake/3rdparty-vector.cmake)
+include(cmake/3rdparty-waveshare.cmake)
 
 
 
@@ -83,7 +84,6 @@ target_sources(uni.can PRIVATE ${uni.can_SRCS} ${uni.can_HDRS})
 
 # includes
 target_include_directories(uni.can PUBLIC include)
-target_include_directories(uni.can PRIVATE include_private)
 target_include_directories(uni.can PRIVATE src)
 
 # defines
@@ -100,6 +100,7 @@ if(WIN32)
 	target_link_libraries(uni.can PUBLIC ixxat-vci)
 	target_link_libraries(uni.can PUBLIC pcanbasic)
 	target_link_libraries(uni.can PUBLIC vxlapi)
+	target_link_libraries(uni.can PUBLIC waveshare)
 endif()
 if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0)
 	target_link_libraries(uni.can PUBLIC stdc++fs)

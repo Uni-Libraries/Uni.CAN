@@ -1,8 +1,8 @@
 CPMAddPackage(
         NAME uni.gui
         GITHUB_REPOSITORY uni-libraries/uni.gui
-        GIT_TAG 7c322bb17f1e8fcafb3c7571956ad6b733e14bfb
-        VERSION 2025.03.11
+        GIT_TAG 973cd9a1dd9f735296139be77c7e22bf951a6c84
+        VERSION 2025.05.19
         OPTIONS
             "BUILD_SHARED_LIBS OFF"
 )

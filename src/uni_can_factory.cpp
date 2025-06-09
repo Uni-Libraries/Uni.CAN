@@ -8,11 +8,13 @@
 // Uni.CAN
 #include "uni_can_factory.h"
 #include "can_provider.h"
-#include "can_chai_provider.h"
-#include "can_ixxat_provider.h"
-#include "can_socketcan_provider.h"
+#include "backend_chai/can_chai_provider.h"
+#include "backend_ixxat/can_ixxat_provider.h"
 #include "backend_peak/can_peak_provider.h"
+#include "backend_socketcan/can_socketcan_provider.h"
 #include "backend_vector/can_vector_provider.h"
+#include "backend_waveshare/can_waveshare_provider.h"
+
 
 
 //
@@ -35,6 +37,7 @@ size_t uni_can_factory_refresh() {
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderIxxat>());
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderPeak>());
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderVector>());
+        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderWaveshare>());
 #endif
 #if defined(__linux__)
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderSocketcan>());

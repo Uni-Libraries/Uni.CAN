@@ -1,7 +1,7 @@
 CPMAddPackage(
         NAME Catch2
         GITHUB_REPOSITORY catchorg/Catch2
-        VERSION 3.8.0
+        VERSION 3.8.1
         OPTIONS
         "BUILD_SHARED_LIBS OFF"
 )
