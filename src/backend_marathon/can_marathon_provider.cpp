@@ -1,29 +1,33 @@
-#if defined(_WIN32)
+//
+// Includes
+//
+
+// stdlib
+#include <cstring>
 
 // CHAI SDK
 #include <chai.h>
 
 // Uni.CAN
-#include "can_chai_channel.h"
-#include "can_chai_provider.h"
+#include "can_marathon_channel.h"
+#include "can_marathon_provider.h"
 
 
 namespace Uni::CAN {
-    void CanProviderChai::Init() {
+    void CanProviderMarathon::Init() {
         if (!_inited) {
             CiInit();
             _inited = true;
         }
     }
 
-    std::vector<std::shared_ptr<uni_can_devinfo_t> > CanProviderChai::GetDeviceInfo() {
+    std::vector<std::shared_ptr<uni_can_devinfo_t> > CanProviderMarathon::GetDeviceInfo() {
         std::vector<std::shared_ptr<uni_can_devinfo_t> > result;
 
         if (!_inited) {
             return result;
         }
 
-        CiInit();
         for (uint8_t i = 0; i < CI_CHAN_NUMS; i++) {
             if (CiOpen(i, 0) == 0) {
                 chipstat_t stat{};
@@ -34,6 +38,10 @@ namespace Uni::CAN {
                     if (CiBoardInfo(&binfo) == 0) {
                         auto* devinfo = new uni_can_devinfo_t{};
                         strcpy(devinfo->device_manufacturer, binfo.manufact);
+                        if (!strlen(devinfo->device_manufacturer))
+                        {
+                            strcpy(devinfo->device_manufacturer, "Marathon");
+                        }
                         strcpy(devinfo->device_model, binfo.name);
                         strcpy(devinfo->device_provider, GetProviderName());
                         devinfo->device_index = i;
@@ -54,19 +62,17 @@ namespace Uni::CAN {
         return result;
     }
 
-    const char * CanProviderChai::GetProviderName() const {
-        return "chai";
+    const char * CanProviderMarathon::GetProviderName() const {
+        return "marathon";
     }
 
-    bool CanProviderChai::IsInited() { return _inited; }
+    bool CanProviderMarathon::IsInited() { return _inited; }
 
-    ICanChannel *CanProviderChai::CreateChannel(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate) {
+    ICanChannel *CanProviderMarathon::CreateChannel(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate) {
         ICanChannel *result = nullptr;
         if (devInfo != nullptr && baudrate != 0) {
-            result = new CanChannelChai(devInfo, devInfo->device_index, baudrate);
+            result = new CanChannelMarathon(devInfo, devInfo->device_index, baudrate);
         }
         return result;
     }
 } // namespace Uni::CAN
-
-#endif

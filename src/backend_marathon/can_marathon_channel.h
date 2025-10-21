@@ -4,14 +4,13 @@
 #include "uni_can_channel.h"
 #include "uni_can_devinfo.h"
 #include "can_channel_base.h"
-#include "common_queue.h"
 
 namespace Uni::CAN {
-    class CanChannelChai : public CanChannelBase {
+    class CanChannelMarathon : public CanChannelBase {
         //ctor
     public:
-        explicit CanChannelChai(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate);
-        ~CanChannelChai() override;
+        explicit CanChannelMarathon(uni_can_devinfo_t *devInfo, size_t channelIdx, uint32_t baudrate);
+        ~CanChannelMarathon() override;
 
         //ICanChannel
     public:

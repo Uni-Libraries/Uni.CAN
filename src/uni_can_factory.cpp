@@ -8,7 +8,7 @@
 // Uni.CAN
 #include "uni_can_factory.h"
 #include "can_provider.h"
-#include "backend_chai/can_chai_provider.h"
+#include "backend_marathon/can_marathon_provider.h"
 #include "backend_ixxat/can_ixxat_provider.h"
 #include "backend_peak/can_peak_provider.h"
 #include "backend_socketcan/can_socketcan_provider.h"
@@ -32,8 +32,8 @@ static std::vector<std::shared_ptr<uni_can_devinfo_t> > g_devices;
 size_t uni_can_factory_refresh() {
     // providers
     if (g_providers.empty()) {
+        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderMarathon>());
 #if defined(_WIN32)
-        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderChai>());
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderIxxat>());
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderPeak>());
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderVector>());

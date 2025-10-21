@@ -15,33 +15,11 @@ endif()
 
 if(PROJECT_IS_TOP_LEVEL)
 	include(cmake/cpm-fmtlib.cmake)
-	include(cmake/cpm-nlohmann_json.cmake)
+    include(cmake/cpm-spdlog.cmake)
+    include(cmake/cpm-nlohmann_json.cmake)
 	include(cmake/cpm-catch2.cmake)
 	include(cmake/cpm-uni.gui.cmake)
-endif()
-
-
-
-#
-# Marathon-Chai
-#
-
-if(WIN32)
-	add_library(chai SHARED IMPORTED)
-
-    set_target_properties(chai PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/include")
-
-	if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
-		set_target_properties(chai PROPERTIES IMPORTED_LOCATION
-			"${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/bin64/chai.dll;${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/bin64/ftd2xx.dll"
-		)
-		set_target_properties(chai PROPERTIES IMPORTED_IMPLIB   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/lib64/chai.lib")
-	else()
-		set_target_properties(chai PROPERTIES IMPORTED_LOCATION
-			"${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/bin32/chai.dll;${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/bin32/ftd2xx.dll"
-		)
-		set_target_properties(chai PROPERTIES IMPORTED_IMPLIB   "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/marathon-chai/lib32/chai.lib")
-	endif()
+    include(cmake/cpm-magic_enum.cmake)
 endif()
 
 
@@ -65,6 +43,7 @@ if(WIN32)
 	target_sources(ixxat-vci INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hms-ixxat/src/guid.c")
 endif()
 
+include(cmake/3rdparty-marathon.cmake)
 include(cmake/3rdparty-peak.cmake)
 include(cmake/3rdparty-vector.cmake)
 include(cmake/3rdparty-waveshare.cmake)
@@ -95,8 +74,9 @@ set_target_properties(uni.can PROPERTIES CXX_STANDARD_REQUIRED ON)
 
 # link
 target_link_libraries(uni.can PUBLIC uni.common)
+
+target_link_libraries(uni.can PUBLIC chai)
 if(WIN32)
-	target_link_libraries(uni.can PUBLIC chai)
 	target_link_libraries(uni.can PUBLIC ixxat-vci)
 	target_link_libraries(uni.can PUBLIC pcanbasic)
 	target_link_libraries(uni.can PUBLIC vxlapi)
@@ -116,6 +96,7 @@ endif()
 #
 
 if(PROJECT_IS_TOP_LEVEL)
+	add_subdirectory(src_app)
 endif()
 
 

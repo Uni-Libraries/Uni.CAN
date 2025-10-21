@@ -1,5 +1,3 @@
-#if defined(_WIN32)
-
 // stdlib
 #include <chrono>
 #include <cstring>
@@ -9,18 +7,18 @@
 #include <chai.h>
 
 // Uni.CAN
-#include "can_chai_channel.h"
+#include "can_marathon_channel.h"
 
 using namespace std::chrono_literals;
 
 namespace Uni::CAN {
-    CanChannelChai::CanChannelChai(uni_can_devinfo_t* devInfo, size_t channelIdx, uint32_t baudrate) {
+    CanChannelMarathon::CanChannelMarathon(uni_can_devinfo_t* devInfo, size_t channelIdx, uint32_t baudrate) {
         _info_dev = *devInfo;
         _info_chidx = channelIdx;
         _info_baudrate = baudrate;
     }
 
-    CanChannelChai::~CanChannelChai() {
+    CanChannelMarathon::~CanChannelMarathon() {
         Close();
         DeInit();
     }
@@ -31,14 +29,14 @@ namespace Uni::CAN {
     // Thread
     //
 
-    void CanChannelChai::threadProc()
+    void CanChannelMarathon::threadProc()
     {
         while (!_thread_abort) {
             threadProcReceive();
         }
     }
 
-    bool CanChannelChai::threadProcReceive() {
+    bool CanChannelMarathon::threadProcReceive() {
         canwait_t cw;
         cw.chan = _info_chidx;
         cw.wflags = CI_WAIT_RC;
@@ -68,7 +66,7 @@ namespace Uni::CAN {
     // Transmit
     //
 
-    bool CanChannelChai::TransmitMessage(const uni_can_message_t &msg) {
+    bool CanChannelMarathon::TransmitMessage(const uni_can_message_t &msg) {
         canmsg_t output_frame{};
         output_frame.id = msg.id;
         output_frame.len = msg.len;
@@ -80,9 +78,9 @@ namespace Uni::CAN {
     }
 
 
-    bool CanChannelChai::DeInit() { return CiClose(_info_chidx) == 0; }
+    bool CanChannelMarathon::DeInit() { return CiClose(_info_chidx) == 0; }
 
-    bool CanChannelChai::Init() {
+    bool CanChannelMarathon::Init() {
         if (CiOpen(_info_chidx, CIO_CAN11 | CIO_CAN29) != 0) {
             return false;
         }
@@ -138,7 +136,7 @@ namespace Uni::CAN {
         return true;
     }
 
-    bool CanChannelChai::Open() {
+    bool CanChannelMarathon::Open() {
         m_receive_queue.clear();
 
         if (CiStart(_info_chidx) != 0) {
@@ -151,12 +149,10 @@ namespace Uni::CAN {
         return true;
     }
 
-    bool CanChannelChai::Close() {
+    bool CanChannelMarathon::Close() {
         threadStop(); 
         m_receive_queue.clear();
         return CiStop(_info_chidx) == 0;
     }
 
 } // namespace Uni::CAN
-
-#endif

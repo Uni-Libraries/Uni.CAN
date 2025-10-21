@@ -1,14 +1,12 @@
 #pragma once
 
-#if defined(_WIN32)
-
 // Uni.CAN
 #include "uni_can_devinfo.h"
 #include "can_provider.h"
-#include "can_chai_channel.h"
+#include "can_marathon_channel.h"
 
 namespace Uni::CAN {
-    class CanProviderChai : public ICanProvider {
+    class CanProviderMarathon : public ICanProvider {
     public:
         void Init() override;
 
@@ -25,5 +23,3 @@ namespace Uni::CAN {
         bool _inited = false;
     };
 } // namespace Uni::CAN
-
-#endif
