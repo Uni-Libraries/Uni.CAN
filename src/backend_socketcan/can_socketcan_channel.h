@@ -25,7 +25,6 @@ namespace Uni::CAN {
         bool DeInit() override;
         bool Open() override;
         bool Close() override;
-        [[nodiscard]] uni_can_message_t* ReceiveMessage() override;
         bool TransmitMessage(const uni_can_message_t &msg) override;
 
         //thread
