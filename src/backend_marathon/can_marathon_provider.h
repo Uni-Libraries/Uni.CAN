@@ -1,5 +1,7 @@
 #pragma once
 
+#if defined(_WIN32)
+
 // Uni.CAN
 #include "uni_can_devinfo.h"
 #include "can_provider.h"
@@ -23,3 +25,5 @@ namespace Uni::CAN {
         bool _inited = false;
     };
 } // namespace Uni::CAN
+
+#endif

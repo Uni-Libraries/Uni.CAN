@@ -1,5 +1,7 @@
 #pragma once
 
+#if defined(_WIN32)
+
 // uni.CAN
 #include "uni_can_channel.h"
 #include "uni_can_devinfo.h"
@@ -26,3 +28,5 @@ namespace Uni::CAN {
         bool threadProcReceive();
     };
 } // namespace Uni::CAN
+
+#endif

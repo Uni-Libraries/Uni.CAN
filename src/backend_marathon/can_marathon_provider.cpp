@@ -1,3 +1,5 @@
+#if defined(_WIN32)
+
 //
 // Includes
 //
@@ -76,3 +78,5 @@ namespace Uni::CAN {
         return result;
     }
 } // namespace Uni::CAN
+
+#endif

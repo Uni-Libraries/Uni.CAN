@@ -1,3 +1,5 @@
+#if defined(_WIN32)
+
 // stdlib
 #include <chrono>
 #include <cstring>
@@ -156,3 +158,5 @@ namespace Uni::CAN {
     }
 
 } // namespace Uni::CAN
+
+#endif

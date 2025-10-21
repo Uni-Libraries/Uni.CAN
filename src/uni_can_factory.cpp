@@ -32,8 +32,8 @@ static std::vector<std::shared_ptr<uni_can_devinfo_t> > g_devices;
 size_t uni_can_factory_refresh() {
     // providers
     if (g_providers.empty()) {
-        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderMarathon>());
 #if defined(_WIN32)
+        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderMarathon>());
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderIxxat>());
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderPeak>());
         g_providers.push_back(std::make_shared<Uni::CAN::CanProviderVector>());
