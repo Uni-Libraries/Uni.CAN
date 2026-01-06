@@ -39,3 +39,5 @@ endfunction()
 
 
 uni_can_add_test(j1939)
+
+uni_can_add_test(protoplexer)
