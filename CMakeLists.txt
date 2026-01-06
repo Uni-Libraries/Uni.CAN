@@ -18,7 +18,10 @@ if(PROJECT_IS_TOP_LEVEL)
     include(cmake/cpm-spdlog.cmake)
     include(cmake/cpm-nlohmann_json.cmake)
 	include(cmake/cpm-catch2.cmake)
-	include(cmake/cpm-uni.gui.cmake)
+	# Optional GUI dependency (may not be present in minimal/library-only checkouts)
+	if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cpm-uni.gui.cmake")
+		include(cmake/cpm-uni.gui.cmake)
+	endif()
     include(cmake/cpm-magic_enum.cmake)
 endif()
 
@@ -98,7 +101,10 @@ endif()
 #
 
 if(PROJECT_IS_TOP_LEVEL)
-	add_subdirectory(src_app)
+	# Optional GUI application (may be absent)
+	if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src_app/CMakeLists.txt")
+		add_subdirectory(src_app)
+	endif()
 endif()
 
 
