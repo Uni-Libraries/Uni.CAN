@@ -17,12 +17,28 @@ extern "C" {
 
 
 //
-// Functions
+// Functions/Provides
+//
+
+size_t uni_can_factory_providers_count();
+
+bool uni_can_factory_get_provider_name(char* out, size_t outlen, size_t index);
+
+
+
+//
+// Functions/Device
 //
 
 size_t uni_can_factory_refresh();
 
 bool uni_can_factory_get_info(uni_can_devinfo_t *info, size_t index);
+
+
+
+//
+// Functions/Channels
+//
 
 void *uni_can_factory_create_channel(uni_can_devinfo_t *info, size_t channelidx, uint32_t baudrate);
 

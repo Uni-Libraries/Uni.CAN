@@ -25,24 +25,66 @@ static std::vector<std::shared_ptr<Uni::CAN::ICanProvider> > g_providers;
 static std::vector<std::shared_ptr<uni_can_devinfo_t> > g_devices;
 
 
+
 //
-// Public
+// Private
+//
+
+static void _uni_can_factory_ensure_providers()
+{
+    if (!g_providers.empty())
+        return;
+
+#if defined(_WIN32)
+    g_providers.push_back(std::make_shared<Uni::CAN::CanProviderMarathon>());
+    g_providers.push_back(std::make_shared<Uni::CAN::CanProviderIxxat>());
+    g_providers.push_back(std::make_shared<Uni::CAN::CanProviderPeak>());
+    g_providers.push_back(std::make_shared<Uni::CAN::CanProviderVector>());
+    g_providers.push_back(std::make_shared<Uni::CAN::CanProviderWaveshare>());
+#endif
+#if defined(__linux__)
+    g_providers.push_back(std::make_shared<Uni::CAN::CanProviderSocketcan>());
+#endif
+}
+
+
+//
+// Public/Providers
+//
+
+size_t uni_can_factory_providers_count()
+{
+    _uni_can_factory_ensure_providers();
+    return g_providers.size();
+}
+
+bool uni_can_factory_get_provider_name(char* out, size_t outlen, size_t index)
+{
+    bool result = false;
+    _uni_can_factory_ensure_providers();
+
+    if(index < g_providers.size() && out && outlen > 1){
+        const char* name = g_providers[index]->GetProviderName();
+        if (!name)
+            name = "";
+
+        strncpy(out, name, outlen - 1);
+        out[outlen - 1] = '\0';
+        result = true;
+    }
+ 
+    return result;
+}
+
+
+
+//
+// Functions/Device
 //
 
 size_t uni_can_factory_refresh() {
     // providers
-    if (g_providers.empty()) {
-#if defined(_WIN32)
-        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderMarathon>());
-        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderIxxat>());
-        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderPeak>());
-        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderVector>());
-        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderWaveshare>());
-#endif
-#if defined(__linux__)
-        g_providers.push_back(std::make_shared<Uni::CAN::CanProviderSocketcan>());
-#endif
-    }
+    _uni_can_factory_ensure_providers();
 
     // devices
     g_devices.clear();
@@ -69,6 +111,11 @@ bool uni_can_factory_get_info(uni_can_devinfo_t *info, size_t index) {
     return result;
 }
 
+
+
+//
+// Functions/Channel
+//
 
 void *uni_can_factory_create_channel(uni_can_devinfo_t *info, size_t channelidx, uint32_t baudrate) {
     if(!info) {
