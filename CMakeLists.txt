@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
-
 project(uni.can)
 
+find_package(Threads REQUIRED)
 
 #
 # CPM
@@ -18,10 +18,7 @@ if(PROJECT_IS_TOP_LEVEL)
     include(cmake/cpm-spdlog.cmake)
     include(cmake/cpm-nlohmann_json.cmake)
 	include(cmake/cpm-catch2.cmake)
-	# Optional GUI dependency (may not be present in minimal/library-only checkouts)
-	if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cpm-uni.gui.cmake")
-		include(cmake/cpm-uni.gui.cmake)
-	endif()
+	include(cmake/cpm-uni.gui.cmake)
     include(cmake/cpm-magic_enum.cmake)
 endif()
 
@@ -101,10 +98,7 @@ endif()
 #
 
 if(PROJECT_IS_TOP_LEVEL)
-	# Optional GUI application (may be absent)
-	if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src_app/CMakeLists.txt")
-		add_subdirectory(src_app)
-	endif()
+	add_subdirectory(src_app)
 endif()
 
 
