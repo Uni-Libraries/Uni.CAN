@@ -5,6 +5,7 @@
 //
 
 // stdlib
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -24,6 +25,16 @@
 
 namespace APP {
     class ProtoPlexerDictionary;
+
+    struct RxRawEntry {
+        std::string ts; // HH:MM:SS.mmm
+        CanMessagePtr msg;
+    };
+
+    struct RxProtoEntry {
+        std::string ts; // HH:MM:SS.mmm
+        ProtoPlexerMessage msg;
+    };
 
     class WindowCanRx: public Uni::GUI::UiElement {
     public:
@@ -50,8 +61,8 @@ namespace APP {
         bool m_filter = false;
         uint32_t m_filter_value = 0;
 
-        std::vector<CanMessagePtr> m_msgs_raw;
-        std::vector<ProtoPlexerMessage> m_msgs_pp;
+        std::vector<RxRawEntry> m_msgs_raw;
+        std::vector<RxProtoEntry> m_msgs_pp;
         State& m_state;
 
         const ProtoPlexerDictionary* m_pp_dict{nullptr};

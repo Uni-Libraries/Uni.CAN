@@ -4,6 +4,7 @@
 
 // stdlib
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -29,6 +30,27 @@
 //
 
 namespace APP {
+    namespace {
+        static std::string now_ts_hhmmss_ms()
+        {
+            using namespace std::chrono;
+            const auto now = system_clock::now();
+            const auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+
+            std::time_t tt = system_clock::to_time_t(now);
+            std::tm tm{};
+#if defined(_WIN32)
+            localtime_s(&tm, &tt);
+#else
+            localtime_r(&tt, &tm);
+#endif
+            char buf[32]{};
+            std::snprintf(buf, sizeof(buf), "%02d:%02d:%02d.%03d",
+                          tm.tm_hour, tm.tm_min, tm.tm_sec, (int)ms.count());
+            return std::string(buf);
+        }
+    }
+
     WindowCanRx::WindowCanRx(State &state) : m_state(state) {
         m_pp_dict = &GetProtoPlexerDictionary();
         filterLoad();
@@ -96,14 +118,15 @@ namespace APP {
     void WindowCanRx::uiTableRawCan() {
         if (ImGui::BeginChild("ScrollingRegionRaw", ImVec2(0, 0), false,
                               ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
-            if (ImGui::BeginTable("PacketsRaw", 4,
-                                  ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersOuter |
-                                  ImGuiTableFlags_BordersInner | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
+            if (ImGui::BeginTable("PacketsRaw", 5,
+                                   ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersOuter |
+                                   ImGuiTableFlags_BordersInner | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
                 ImGui::TableSetupScrollFreeze(0, 1);
+                ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_None, 0.18f);
                 ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_None, 0.2f);
                 ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_None, 0.15f);
                 ImGui::TableSetupColumn("DLC", ImGuiTableColumnFlags_None, 0.1f);
-                ImGui::TableSetupColumn("Data", ImGuiTableColumnFlags_None, 0.55f);
+                ImGui::TableSetupColumn("Data", ImGuiTableColumnFlags_None, 0.37f);
                 ImGui::TableHeadersRow();
 
                 ImGuiListClipper clipper;
@@ -117,7 +140,8 @@ namespace APP {
                             break;
                         }
 
-                        const auto& ptr = m_msgs_raw[(size_t)i];
+                        const auto& e = m_msgs_raw[(size_t)i];
+                        const auto& ptr = e.msg;
                         if (!ptr) {
                             continue;
                         }
@@ -133,18 +157,22 @@ namespace APP {
                         ImGui::TableNextRow();
 
                         if (ImGui::TableSetColumnIndex(0)) {
-                            ImGui::Text("%08X", ptr->id);
+                            ImGui::TextUnformatted(e.ts.c_str());
                         }
 
                         if (ImGui::TableSetColumnIndex(1)) {
-                            ImGui::Text("%s", (ptr->flags & UNI_CAN_MSG_FLAG_EXT_ID) ? "EXT" : "STD");
+                            ImGui::Text("%08X", ptr->id);
                         }
 
                         if (ImGui::TableSetColumnIndex(2)) {
-                            ImGui::Text("%u", (unsigned)ptr->len);
+                            ImGui::Text("%s", (ptr->flags & UNI_CAN_MSG_FLAG_EXT_ID) ? "EXT" : "STD");
                         }
 
                         if (ImGui::TableSetColumnIndex(3)) {
+                            ImGui::Text("%u", (unsigned)ptr->len);
+                        }
+
+                        if (ImGui::TableSetColumnIndex(4)) {
                             std::string data{};
                             for (int idx = 0; idx < (int)ptr->len; idx++) {
                                 char buf[8]{};
@@ -167,19 +195,21 @@ namespace APP {
     }
 
     void WindowCanRx::uiTableProtoPlexer() {
-        if (ImGui::BeginChild("ScrollingRegionPP", ImVec2(0, 0), false,
-                              ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
-            if (ImGui::BeginTable("PacketsPP", 6,
-                                  ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersOuter |
-                                  ImGuiTableFlags_BordersInner | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
+        // Use table horizontal scrolling so long decoded text in Data column remains readable.
+        if (ImGui::BeginChild("ScrollingRegionPP", ImVec2(0, 0), false)) {
+            if (ImGui::BeginTable("PacketsPP", 7,
+                                  ImGuiTableFlags_BordersOuter |
+                                  ImGuiTableFlags_BordersInner | ImGuiTableFlags_RowBg |
+                                  ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX)) {
                 ImGui::TableSetupScrollFreeze(0, 1);
-                // Wider columns: we now display "HEX (Name)".
-                ImGui::TableSetupColumn("MSG_ID", ImGuiTableColumnFlags_None, 0.22f);
-                ImGui::TableSetupColumn("From", ImGuiTableColumnFlags_None, 0.15f);
-                ImGui::TableSetupColumn("To", ImGuiTableColumnFlags_None, 0.15f);
-                ImGui::TableSetupColumn("Prio", ImGuiTableColumnFlags_None, 0.07f);
-                ImGui::TableSetupColumn("Len", ImGuiTableColumnFlags_None, 0.07f);
-                ImGui::TableSetupColumn("Data", ImGuiTableColumnFlags_None, 0.34f);
+                ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, 130.0f);
+                // Fixed pixel widths + ScrollX lets user scroll to read full Data text.
+                ImGui::TableSetupColumn("MSG_ID", ImGuiTableColumnFlags_WidthFixed, 220.0f);
+                ImGui::TableSetupColumn("From", ImGuiTableColumnFlags_WidthFixed, 170.0f);
+                ImGui::TableSetupColumn("To", ImGuiTableColumnFlags_WidthFixed, 170.0f);
+                ImGui::TableSetupColumn("Prio", ImGuiTableColumnFlags_WidthFixed, 70.0f);
+                ImGui::TableSetupColumn("Len", ImGuiTableColumnFlags_WidthFixed, 70.0f);
+                ImGui::TableSetupColumn("Data", ImGuiTableColumnFlags_WidthFixed, 1400.0f);
                 ImGui::TableHeadersRow();
 
                 ImGuiListClipper clipper;
@@ -193,7 +223,8 @@ namespace APP {
                             break;
                         }
 
-                        const auto& m = m_msgs_pp[(size_t)i];
+                        const auto& e = m_msgs_pp[(size_t)i];
+                        const auto& m = e.msg;
                         if(!filterMatch(m.message_id)) {
                             if(i == clipper.DisplayStart) {
                                 clipper.DisplayStart++;
@@ -205,6 +236,10 @@ namespace APP {
                         ImGui::TableNextRow();
 
                         if (ImGui::TableSetColumnIndex(0)) {
+                            ImGui::TextUnformatted(e.ts.c_str());
+                        }
+
+                        if (ImGui::TableSetColumnIndex(1)) {
                             const auto label = m_pp_dict ? m_pp_dict->FormatMessageId(m.message_id) : "";
                             if (!label.empty()) {
                                 ImGui::TextUnformatted(label.c_str());
@@ -212,7 +247,8 @@ namespace APP {
                                 ImGui::Text("%04X", m.message_id);
                             }
                         }
-                        if (ImGui::TableSetColumnIndex(1)) {
+
+                        if (ImGui::TableSetColumnIndex(2)) {
                             const auto label = m_pp_dict ? m_pp_dict->FormatAddress(m.address_from) : "";
                             if (!label.empty()) {
                                 ImGui::TextUnformatted(label.c_str());
@@ -220,7 +256,8 @@ namespace APP {
                                 ImGui::Text("%03X", m.address_from);
                             }
                         }
-                        if (ImGui::TableSetColumnIndex(2)) {
+
+                        if (ImGui::TableSetColumnIndex(3)) {
                             const auto label = m_pp_dict ? m_pp_dict->FormatAddress(m.address_to) : "";
                             if (!label.empty()) {
                                 ImGui::TextUnformatted(label.c_str());
@@ -228,13 +265,16 @@ namespace APP {
                                 ImGui::Text("%03X", m.address_to);
                             }
                         }
-                        if (ImGui::TableSetColumnIndex(3)) {
+
+                        if (ImGui::TableSetColumnIndex(4)) {
                             ImGui::Text("%X", (unsigned)m.priority_inverted);
                         }
-                        if (ImGui::TableSetColumnIndex(4)) {
+
+                        if (ImGui::TableSetColumnIndex(5)) {
                             ImGui::Text("%u", (unsigned)m.data.size());
                         }
-                        if (ImGui::TableSetColumnIndex(5)) {
+
+                        if (ImGui::TableSetColumnIndex(6)) {
                             std::string data{};
                             const size_t show = std::min<size_t>(m.data.size(), 16);
                             for (size_t idx = 0; idx < show; idx++) {
@@ -318,9 +358,9 @@ namespace APP {
 
     void WindowCanRx::receiveMsg(const RxPacket& msg) {
         if (std::holds_alternative<CanMessagePtr>(msg)) {
-            m_msgs_raw.push_back(std::get<CanMessagePtr>(msg));
+            m_msgs_raw.push_back(RxRawEntry{now_ts_hhmmss_ms(), std::get<CanMessagePtr>(msg)});
         } else {
-            m_msgs_pp.push_back(std::get<ProtoPlexerMessage>(msg));
+            m_msgs_pp.push_back(RxProtoEntry{now_ts_hhmmss_ms(), std::get<ProtoPlexerMessage>(msg)});
         }
     }
 

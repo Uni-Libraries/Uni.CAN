@@ -89,6 +89,22 @@ namespace APP {
             *out = data[off];
             return true;
         }
+
+        static bool read_u32be_at(const std::vector<std::uint8_t>& data, std::size_t off, std::uint32_t* out)
+        {
+            if (!out) {
+                return false;
+            }
+            if (off + 4 > data.size()) {
+                return false;
+            }
+            *out = ((std::uint32_t)data[off] << 24U) |
+                   ((std::uint32_t)data[off + 1] << 16U) |
+                   ((std::uint32_t)data[off + 2] << 8U) |
+                   (std::uint32_t)data[off + 3];
+            return true;
+        }
+
     }
 
     void ProtoPlexerDictionary::clear()
@@ -294,9 +310,16 @@ namespace APP {
                 }
                 append_kv(f.name, fmt::format("{}", (unsigned)v));
             }
-            if (f.type == "u32le") {
+            else if (f.type == "u32le") {
                 std::uint32_t v = 0;
                 if (!read_u32le_at(data, f.offset, &v)) {
+                    continue;
+                }
+                append_kv(f.name, fmt::format("{}", v));
+            }
+            else if (f.type == "u32be") {
+                std::uint32_t v = 0;
+                if (!read_u32be_at(data, f.offset, &v)) {
                     continue;
                 }
                 append_kv(f.name, fmt::format("{}", v));
