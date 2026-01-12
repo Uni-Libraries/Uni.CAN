@@ -32,11 +32,14 @@ target_link_libraries(uni.can.app PRIVATE nlohmann_json)
 target_link_libraries(uni.can.app PRIVATE fmt::fmt)
 
 # Copy ProtoPlexer dictionary JSON next to executable for runtime loading.
-add_custom_command(TARGET uni.can.app POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/protoplexer_dict.json
-        $<TARGET_FILE_DIR:uni.can.app>/protoplexer_dict.json
-)
+# Run only if the source file exists.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/protoplexer_dict.json")
+    add_custom_command(TARGET uni.can.app POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_CURRENT_SOURCE_DIR}/protoplexer_dict.json
+            $<TARGET_FILE_DIR:uni.can.app>/protoplexer_dict.json
+    )
+endif()
 
 if(WIN32)
     add_custom_command(TARGET uni.can.app POST_BUILD
