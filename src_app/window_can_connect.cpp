@@ -52,7 +52,7 @@ namespace APP {
     bool WindowCanConnect::UiUpdate() {
 
         ImGui::SetNextWindowPos({0,0}, ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize({450,250}, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize({450,290}, ImGuiCond_FirstUseEver);
         ImGui::Begin("CAN Connect");
 
         uiUpdateComboCan();
@@ -64,7 +64,7 @@ namespace APP {
 
         uiUpdateComboBaudrate();
 
-        uiUpdateBackend();
+         uiUpdateBackend();
 
         if(ImGui::Button("Connect")) {
             CanManager::ConnectParams params{};
@@ -86,12 +86,7 @@ namespace APP {
         ImGui::SameLine();
         ImGui::Text(to_string(m_state.CanMgr().StateGet()));
 
-        ImGui::Separator();
-
-        ImGui::SetNextItemWidth(200);
-        ImGui::InputUInt("Transmit throttle ms",&m_state.CanMgr().TransmitThrottle(),1,1);
-
-        ImGui::End();
+         ImGui::End();
 
         return true;
     }
@@ -99,16 +94,23 @@ namespace APP {
     void WindowCanConnect::uiUpdateBackend()
     {
         ImGui::Separator();
-        if (ImGui::EnumCombo("Parse backend", m_backend, 200))
+
+        const bool connected = m_state.CanMgr().IsConnected();
+
+        ImGui::BeginDisabled(connected);
+        if (ImGui::EnumCombo("Mode", m_backend, 200))
         {
             // Make other windows react immediately (even in STANDBY).
             m_state.CanMgr().BackendConfiguredGet() = m_backend;
         }
+        ImGui::EndDisabled();
 
         if (m_backend != ParseBackend::ProtoPlexer)
         {
             return;
         }
+
+        ImGui::BeginDisabled(connected);
 
         ImGui::SetNextItemWidth(200);
         if (ImGui::InputUInt("PP own addr (12-bit)", &m_pp_own_address, 1, 16, ImGuiInputTextFlags_CharsHexadecimal))
@@ -134,6 +136,8 @@ namespace APP {
             auto& cfg = m_state.CanMgr().ProtoPlexerConfigConfiguredGet();
             cfg.monitoring = m_pp_monitoring;
         }
+
+        ImGui::EndDisabled();
     }
 
     void WindowCanConnect::uiUpdateComboCan()

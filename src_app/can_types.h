@@ -21,10 +21,10 @@ namespace APP {
 
     struct ProtoPlexerConfig {
         // Addresses are 12-bit (0x000..0xFFF) in Protoplexer.
-        std::uint16_t own_address{0x001};
+        std::uint16_t own_address{0x00F};
         std::uint16_t max_channels{16};
         std::uint16_t max_chunk_length{UNI_CAN_MESSAGE_MAXLEN};
-        bool monitoring{false};
+        bool monitoring{true};
     };
 
     struct ProtoPlexerMessage {

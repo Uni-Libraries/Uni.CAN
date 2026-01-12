@@ -23,6 +23,8 @@
 //
 
 namespace APP {
+    class ProtoPlexerDictionary;
+
     class WindowCanRx: public Uni::GUI::UiElement {
     public:
         explicit WindowCanRx(State& state);
@@ -51,6 +53,8 @@ namespace APP {
         std::vector<CanMessagePtr> m_msgs_raw;
         std::vector<ProtoPlexerMessage> m_msgs_pp;
         State& m_state;
+
+        const ProtoPlexerDictionary* m_pp_dict{nullptr};
 
         //filter
     private:

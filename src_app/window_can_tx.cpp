@@ -14,6 +14,9 @@
 // app
 #include "window_can_tx.h"
 
+// app
+#include "protoplexer_dictionary.h"
+
 // stdlib
 #include <cctype>
 #include <sstream>
@@ -94,19 +97,45 @@ namespace APP {
             };
 
             auto ui_pp = [&]() {
+                const auto& dict = GetProtoPlexerDictionary();
+
                 ImGui::Text("ProtoPlexer message");
 
                 ImGui::SetNextItemWidth(200);
                 ImGui::InputUInt("msg_id", &m_pp_msg_id, 1, 16, ImGuiInputTextFlags_CharsHexadecimal);
                 m_pp_msg_id &= 0xFFFFu;
 
+                {
+                    const auto name = dict.MessageName(static_cast<std::uint16_t>(m_pp_msg_id));
+                    if (!name.empty()) {
+                        ImGui::SameLine();
+                        ImGui::TextDisabled("(%s)", std::string(name).c_str());
+                    }
+                }
+
                 ImGui::SetNextItemWidth(200);
                 ImGui::InputUInt("from (12-bit)", &m_pp_from, 1, 16, ImGuiInputTextFlags_CharsHexadecimal);
                 m_pp_from &= 0x0FFFu;
 
+                {
+                    const auto name = dict.AddressName(static_cast<std::uint16_t>(m_pp_from));
+                    if (!name.empty()) {
+                        ImGui::SameLine();
+                        ImGui::TextDisabled("(%s)", std::string(name).c_str());
+                    }
+                }
+
                 ImGui::SetNextItemWidth(200);
                 ImGui::InputUInt("to (12-bit)", &m_pp_to, 1, 16, ImGuiInputTextFlags_CharsHexadecimal);
                 m_pp_to &= 0x0FFFu;
+
+                {
+                    const auto name = dict.AddressName(static_cast<std::uint16_t>(m_pp_to));
+                    if (!name.empty()) {
+                        ImGui::SameLine();
+                        ImGui::TextDisabled("(%s)", std::string(name).c_str());
+                    }
+                }
 
                 ImGui::SetNextItemWidth(200);
                 ImGui::InputUInt("priority_inv (0..F)", &m_pp_prio, 1, 1, ImGuiInputTextFlags_CharsHexadecimal);

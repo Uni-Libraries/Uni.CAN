@@ -18,6 +18,9 @@
 #include "imgui_adds.h"
 #include "window_can_rx.h"
 
+// app
+#include "protoplexer_dictionary.h"
+
 #include <iostream>
 
 
@@ -27,6 +30,7 @@
 
 namespace APP {
     WindowCanRx::WindowCanRx(State &state) : m_state(state) {
+        m_pp_dict = &GetProtoPlexerDictionary();
         filterLoad();
 
         m_state.CanMgr().ReceiveSubscribe("window_can_rx", [this](const RxPacket& msg) { receiveMsg(msg); });
@@ -38,7 +42,7 @@ namespace APP {
 
     bool WindowCanRx::UiUpdate() {
         ImGui::SetNextWindowPos({ 500,0 }, ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize({ 700,400 }, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize({ 950,450 }, ImGuiCond_FirstUseEver);
         if (ImGui::Begin("CAN RX")) {
             if (ImGui::Button("Clear")) {
                 clear();
@@ -169,12 +173,13 @@ namespace APP {
                                   ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersOuter |
                                   ImGuiTableFlags_BordersInner | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
                 ImGui::TableSetupScrollFreeze(0, 1);
-                ImGui::TableSetupColumn("MSG_ID", ImGuiTableColumnFlags_None, 0.15f);
-                ImGui::TableSetupColumn("From", ImGuiTableColumnFlags_None, 0.1f);
-                ImGui::TableSetupColumn("To", ImGuiTableColumnFlags_None, 0.1f);
-                ImGui::TableSetupColumn("Prio", ImGuiTableColumnFlags_None, 0.1f);
-                ImGui::TableSetupColumn("Len", ImGuiTableColumnFlags_None, 0.1f);
-                ImGui::TableSetupColumn("Data", ImGuiTableColumnFlags_None, 0.45f);
+                // Wider columns: we now display "HEX (Name)".
+                ImGui::TableSetupColumn("MSG_ID", ImGuiTableColumnFlags_None, 0.22f);
+                ImGui::TableSetupColumn("From", ImGuiTableColumnFlags_None, 0.15f);
+                ImGui::TableSetupColumn("To", ImGuiTableColumnFlags_None, 0.15f);
+                ImGui::TableSetupColumn("Prio", ImGuiTableColumnFlags_None, 0.07f);
+                ImGui::TableSetupColumn("Len", ImGuiTableColumnFlags_None, 0.07f);
+                ImGui::TableSetupColumn("Data", ImGuiTableColumnFlags_None, 0.34f);
                 ImGui::TableHeadersRow();
 
                 ImGuiListClipper clipper;
@@ -200,13 +205,28 @@ namespace APP {
                         ImGui::TableNextRow();
 
                         if (ImGui::TableSetColumnIndex(0)) {
-                            ImGui::Text("%04X", m.message_id);
+                            const auto label = m_pp_dict ? m_pp_dict->FormatMessageId(m.message_id) : "";
+                            if (!label.empty()) {
+                                ImGui::TextUnformatted(label.c_str());
+                            } else {
+                                ImGui::Text("%04X", m.message_id);
+                            }
                         }
                         if (ImGui::TableSetColumnIndex(1)) {
-                            ImGui::Text("%03X", m.address_from);
+                            const auto label = m_pp_dict ? m_pp_dict->FormatAddress(m.address_from) : "";
+                            if (!label.empty()) {
+                                ImGui::TextUnformatted(label.c_str());
+                            } else {
+                                ImGui::Text("%03X", m.address_from);
+                            }
                         }
                         if (ImGui::TableSetColumnIndex(2)) {
-                            ImGui::Text("%03X", m.address_to);
+                            const auto label = m_pp_dict ? m_pp_dict->FormatAddress(m.address_to) : "";
+                            if (!label.empty()) {
+                                ImGui::TextUnformatted(label.c_str());
+                            } else {
+                                ImGui::Text("%03X", m.address_to);
+                            }
                         }
                         if (ImGui::TableSetColumnIndex(3)) {
                             ImGui::Text("%X", (unsigned)m.priority_inverted);
@@ -224,6 +244,15 @@ namespace APP {
                             }
                             if (m.data.size() > show) {
                                 data += "...";
+                            }
+
+                            // Append decoded fields summary (if dictionary has it).
+                            if (m_pp_dict) {
+                                const auto summary = m_pp_dict->FormatPayloadSummary(m.message_id, m.data);
+                                if (!summary.empty()) {
+                                    data += " | ";
+                                    data += summary;
+                                }
                             }
                             ImGui::Text("%s", data.c_str());
                         }

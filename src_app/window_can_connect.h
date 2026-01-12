@@ -44,9 +44,9 @@ namespace APP {
         // backend
     private:
         ParseBackend m_backend{ParseBackend::RawCan};
-        unsigned int m_pp_own_address{0x001};
+        unsigned int m_pp_own_address{0x00F};
         unsigned int m_pp_max_channels{16};
-        bool m_pp_monitoring{false};
+        bool m_pp_monitoring{true};
 
 
         // state

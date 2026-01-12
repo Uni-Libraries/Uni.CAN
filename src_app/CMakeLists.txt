@@ -14,6 +14,8 @@ target_sources(uni.can.app PRIVATE
     window_can_connect.cpp
     window_can_rx.cpp
     window_can_tx.cpp
+
+    protoplexer_dictionary.cpp
 )
 
 target_compile_features(uni.can.app PRIVATE cxx_std_23)
@@ -29,10 +31,16 @@ target_link_libraries(uni.can.app PRIVATE uni.gui)
 target_link_libraries(uni.can.app PRIVATE nlohmann_json)
 target_link_libraries(uni.can.app PRIVATE fmt::fmt)
 
+# Copy ProtoPlexer dictionary JSON next to executable for runtime loading.
+add_custom_command(TARGET uni.can.app POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/protoplexer_dict.json
+        $<TARGET_FILE_DIR:uni.can.app>/protoplexer_dict.json
+)
+
 if(WIN32)
     add_custom_command(TARGET uni.can.app POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:uni.can.app> $<TARGET_FILE_DIR:uni.can.app>
             COMMAND_EXPAND_LISTS
     )
 endif()
-
