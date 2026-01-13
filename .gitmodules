@@ -1,0 +1,6 @@
+[submodule "3rdparty/uni_common"]
+	path = 3rdparty/uni_common
+	url = https://github.com/Uni-Libraries/uni.common
+[submodule "3rdparty/libsocketcan"]
+	path = 3rdparty/libsocketcan
+	url = https://github.com/linux-can/libsocketcan.git

@@ -4,16 +4,15 @@ project(uni.can)
 find_package(Threads REQUIRED)
 
 #
-# CPM
+# Dependencies
 #
 
-include(cmake/cpm.cmake)
-include(cmake/cpm-uni.common.cmake)
-if(NOT WIN32)
-	include(cmake/cpm-libsocketcan.cmake)
-endif()
+include(3rdparty/uni_common.cmake)
+include(3rdparty/libsocketcan.cmake)
 
 if(PROJECT_IS_TOP_LEVEL)
+
+    include(cmake/cpm.cmake)
 	include(cmake/cpm-fmtlib.cmake)
     include(cmake/cpm-spdlog.cmake)
     include(cmake/cpm-nlohmann_json.cmake)
