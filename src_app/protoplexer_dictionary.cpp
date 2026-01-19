@@ -340,6 +340,35 @@ namespace APP {
         return out;
     }
 
+    const ProtoPlexerMessageDef* ProtoPlexerDictionary::MessageDef(std::uint16_t id) const
+    {
+        const auto it = m_messages.find(id);
+        if (it == m_messages.end()) {
+            return nullptr;
+        }
+        return &it->second;
+    }
+
+    std::vector<std::uint16_t> ProtoPlexerDictionary::MessageIds() const
+    {
+        std::vector<std::uint16_t> out;
+        out.reserve(m_messages.size());
+        for (const auto& it : m_messages) {
+            out.push_back(it.first);
+        }
+        return out;
+    }
+
+    std::vector<std::uint16_t> ProtoPlexerDictionary::AddressIds() const
+    {
+        std::vector<std::uint16_t> out;
+        out.reserve(m_addresses.size());
+        for (const auto& it : m_addresses) {
+            out.push_back(it.first);
+        }
+        return out;
+    }
+
     const ProtoPlexerDictionary& GetProtoPlexerDictionary()
     {
         static ProtoPlexerDictionary dict = []() {

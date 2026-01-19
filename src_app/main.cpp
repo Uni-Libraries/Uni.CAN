@@ -20,6 +20,7 @@
 #include "window_can_connect.h"
 #include "window_can_rx.h"
 #include "window_can_tx.h"
+#include "topbar.h"
 
 
 
@@ -47,10 +48,12 @@ std::string uni_gui_app_version_get()
 
 std::vector<std::shared_ptr<Uni::GUI::UiElement>> uni_gui_app_initialize(int argc, char **argv)
 {
-   // register windows
-   return {
-      std::make_shared<APP::WindowCanConnect>(g_state),
-      std::make_shared<APP::WindowCanRx>(g_state),
-      std::make_shared<APP::WindowCanTx>(g_state),
-   };
+    // register windows
+    auto connect = std::make_shared<APP::WindowCanConnect>(g_state);
+    return {
+        std::make_shared<APP::TopBar>(connect),
+        connect,
+        std::make_shared<APP::WindowCanRx>(g_state),
+        std::make_shared<APP::WindowCanTx>(g_state),
+    };
 }

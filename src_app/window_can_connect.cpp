@@ -91,53 +91,51 @@ namespace APP {
         return true;
     }
 
-    void WindowCanConnect::uiUpdateBackend()
+    bool WindowCanConnect::UiUpdateTopBar()
     {
-        ImGui::Separator();
-
         const bool connected = m_state.CanMgr().IsConnected();
 
         ImGui::BeginDisabled(connected);
-        if (ImGui::EnumCombo("Mode", m_backend, 200))
+        ImGui::AlignTextToFramePadding();
+        if (ImGui::EnumCombo("Mode", m_backend, 160))
         {
-            // Make other windows react immediately (even in STANDBY).
             m_state.CanMgr().BackendConfiguredGet() = m_backend;
         }
         ImGui::EndDisabled();
 
         if (m_backend != ParseBackend::ProtoPlexer)
         {
-            return;
+            return true;
         }
 
+        ImGui::SameLine();
         ImGui::BeginDisabled(connected);
 
-        ImGui::SetNextItemWidth(200);
-        if (ImGui::InputUInt("PP own addr (12-bit)", &m_pp_own_address, 1, 16, ImGuiInputTextFlags_CharsHexadecimal))
+        ImGui::Text("Address:");
+        ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(220);
+        if (ImGui::InputUInt(" ##addr", &m_pp_own_address, 1, 16, ImGuiInputTextFlags_CharsHexadecimal))
         {
             auto& cfg = m_state.CanMgr().ProtoPlexerConfigConfiguredGet();
             cfg.own_address = static_cast<uint16_t>(m_pp_own_address & 0x0FFFu);
         }
         m_pp_own_address &= 0x0FFFu;
 
-        ImGui::SetNextItemWidth(200);
-        if (ImGui::InputUInt("PP max channels", &m_pp_max_channels, 1, 1))
-        {
-            auto& cfg = m_state.CanMgr().ProtoPlexerConfigConfiguredGet();
-            cfg.max_channels = static_cast<uint16_t>(m_pp_max_channels == 0 ? 1 : m_pp_max_channels);
-        }
-        if (m_pp_max_channels == 0)
-        {
-            m_pp_max_channels = 1;
-        }
-
-        if (ImGui::Checkbox("PP monitoring (accept all dst)", &m_pp_monitoring))
+        ImGui::SameLine();
+        if (ImGui::Checkbox("PP monitoring", &m_pp_monitoring))
         {
             auto& cfg = m_state.CanMgr().ProtoPlexerConfigConfiguredGet();
             cfg.monitoring = m_pp_monitoring;
         }
 
         ImGui::EndDisabled();
+        return true;
+    }
+
+    void WindowCanConnect::uiUpdateBackend()
+    {
+        // moved to TopBar
     }
 
     void WindowCanConnect::uiUpdateComboCan()

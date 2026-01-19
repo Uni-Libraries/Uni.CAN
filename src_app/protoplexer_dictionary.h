@@ -46,6 +46,10 @@ namespace APP {
         // Example: "time_ms=123456" or "antenna_enable=1 transmission_enable=0".
         std::string FormatPayloadSummary(std::uint16_t id, const std::vector<std::uint8_t>& data) const;
 
+        const ProtoPlexerMessageDef* MessageDef(std::uint16_t id) const;
+        std::vector<std::uint16_t> MessageIds() const;
+        std::vector<std::uint16_t> AddressIds() const;
+
     private:
         void clear();
 

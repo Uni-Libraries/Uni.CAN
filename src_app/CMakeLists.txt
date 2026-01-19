@@ -14,6 +14,7 @@ target_sources(uni.can.app PRIVATE
     window_can_connect.cpp
     window_can_rx.cpp
     window_can_tx.cpp
+    topbar.cpp
 
     protoplexer_dictionary.cpp
 )

@@ -56,6 +56,7 @@ namespace APP {
         //ui 
     public:
         bool UiUpdate() override;
+        bool UiUpdateTopBar();
     private:
         void uiUpdateComboCan();
         void uiUpdateComboBaudrate();
