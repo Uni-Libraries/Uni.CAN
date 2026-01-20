@@ -47,4 +47,14 @@ if(WIN32)
             COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:uni.can.app> $<TARGET_FILE_DIR:uni.can.app>
             COMMAND_EXPAND_LISTS
     )
+    install(
+        FILES $<TARGET_RUNTIME_DLLS:uni.can.app>
+        DESTINATION bin
+    )
 endif()
+
+install(
+    TARGETS uni.can.app
+    RUNTIME DESTINATION bin
+)
+
