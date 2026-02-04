@@ -72,7 +72,9 @@ namespace APP {
             ImGui::SameLine();
             ImGui::Checkbox("Autoscroll", &m_autoscroll);
             ImGui::SameLine();
-            ImGui::Checkbox("Filter", &m_filter);
+            if (ImGui::Checkbox("Filter", &m_filter)) {
+                rebuildFilter();
+            }
 
             uiTable();
         }
@@ -130,27 +132,19 @@ namespace APP {
                 ImGui::TableHeadersRow();
 
                 ImGuiListClipper clipper;
-                clipper.Begin((int)m_msgs_raw.size());
+                clipper.Begin((int)m_msgs_raw_filtered.size());
 
                 bool process = true;
                 while (process && clipper.Step()) {
                     for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-                        if(i >= (int)m_msgs_raw.size()) {
+                        if(i >= (int)m_msgs_raw_filtered.size()) {
                             process = false;
                             break;
                         }
 
-                        const auto& e = m_msgs_raw[(size_t)i];
+                        const auto& e = m_msgs_raw[m_msgs_raw_filtered[i]];
                         const auto& ptr = e.msg;
                         if (!ptr) {
-                            continue;
-                        }
-
-                        if(!filterMatch(ptr->id)) {
-                            if(i == clipper.DisplayStart) {
-                                clipper.DisplayStart++;
-                            }
-                            clipper.DisplayEnd++;
                             continue;
                         }
 
@@ -213,25 +207,18 @@ namespace APP {
                 ImGui::TableHeadersRow();
 
                 ImGuiListClipper clipper;
-                clipper.Begin((int)m_msgs_pp.size());
+                clipper.Begin((int)m_msgs_pp_filtered.size());
 
                 bool process = true;
                 while (process && clipper.Step()) {
                     for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-                        if(i >= (int)m_msgs_pp.size()) {
+                        if(i >= (int)m_msgs_pp_filtered.size()) {
                             process = false;
                             break;
                         }
 
-                        const auto& e = m_msgs_pp[(size_t)i];
+                        const auto& e = m_msgs_pp[m_msgs_pp_filtered[i]];
                         const auto& m = e.msg;
-                        if(!filterMatch(m.message_id)) {
-                            if(i == clipper.DisplayStart) {
-                                clipper.DisplayStart++;
-                            }
-                            clipper.DisplayEnd++;
-                            continue;
-                        }
 
                         ImGui::TableNextRow();
 
@@ -335,6 +322,7 @@ namespace APP {
 
             if(ImGui::Button("Remove")) {
                 m_filter_list.erase(m_filter_list.begin() + selected_idx);
+                rebuildFilter();
             }
 
 
@@ -345,6 +333,7 @@ namespace APP {
             if (ImGui::Button("Add")) {
                 m_filter_list.push_back(m_filter_value);
                 filterSave();
+                rebuildFilter();
             }
         }
 
@@ -353,14 +342,22 @@ namespace APP {
 
     void WindowCanRx::clear() {
         m_msgs_raw.clear();
+        m_msgs_raw_filtered.clear();
         m_msgs_pp.clear();
+        m_msgs_pp_filtered.clear();
     }
 
     void WindowCanRx::receiveMsg(const RxPacket& msg) {
         if (std::holds_alternative<CanMessagePtr>(msg)) {
             m_msgs_raw.push_back(RxRawEntry{now_ts_hhmmss_ms(), std::get<CanMessagePtr>(msg)});
+            if (filterMatch(m_msgs_raw.back().msg->id)) {
+                m_msgs_raw_filtered.push_back(m_msgs_raw.size() - 1);
+            }
         } else {
             m_msgs_pp.push_back(RxProtoEntry{now_ts_hhmmss_ms(), std::get<ProtoPlexerMessage>(msg)});
+            if (filterMatch(m_msgs_pp.back().msg.message_id)) {
+                m_msgs_pp_filtered.push_back(m_msgs_pp.size() - 1);
+            }
         }
     }
 
@@ -385,5 +382,23 @@ namespace APP {
         std::ofstream file("filter.json");
         nlohmann::json j(m_filter_list);
         file << j;
+    }
+
+    void WindowCanRx::rebuildFilter() {
+        m_msgs_raw_filtered.clear();
+        m_msgs_raw_filtered.reserve(m_msgs_raw.size());
+        for(size_t i = 0; i < m_msgs_raw.size(); ++i) {
+            if(filterMatch(m_msgs_raw[i].msg->id)) {
+                m_msgs_raw_filtered.push_back(i);
+            }
+        }
+
+        m_msgs_pp_filtered.clear();
+        m_msgs_pp_filtered.reserve(m_msgs_pp.size());
+        for(size_t i = 0; i < m_msgs_pp.size(); ++i) {
+            if(filterMatch(m_msgs_pp[i].msg.message_id)) {
+                m_msgs_pp_filtered.push_back(i);
+            }
+        }
     }
 }

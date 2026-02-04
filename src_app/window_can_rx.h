@@ -62,7 +62,9 @@ namespace APP {
         uint32_t m_filter_value = 0;
 
         std::vector<RxRawEntry> m_msgs_raw;
+        std::vector<size_t> m_msgs_raw_filtered;
         std::vector<RxProtoEntry> m_msgs_pp;
+        std::vector<size_t> m_msgs_pp_filtered;
         State& m_state;
 
         const ProtoPlexerDictionary* m_pp_dict{nullptr};
@@ -72,6 +74,7 @@ namespace APP {
         bool filterMatch(uint32_t key) const;
         void filterLoad();
         void filterSave();
+        void rebuildFilter();
     private:
         std::vector<uint32_t> m_filter_list;
         int m_filter_selection{-1};
