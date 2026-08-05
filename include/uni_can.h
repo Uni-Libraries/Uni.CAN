@@ -13,6 +13,9 @@
 // protoplexer
 #include "uni_can_protoplexer.h"
 
+// IMP
+#include "uni_can_protocol_imp.h"
+
 #include "uni_can_j1939_const.h"
 #include "uni_can_j1939_msg.h"
 #include "uni_can_j1939_pgn.h"
