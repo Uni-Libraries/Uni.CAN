@@ -112,6 +112,7 @@ namespace Uni::CAN {
         addr.can_family = AF_CAN;
         addr.can_ifindex = _info_dev.device_index;
         if (bind(_fd, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) == -1) {
+            close(_fd);
             _fd = -1;
             return false;
         }
