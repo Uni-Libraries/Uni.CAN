@@ -62,6 +62,12 @@ typedef enum {
     UNI_CAN_PROTOPLEXER_SEND_MSG_HW_CANT_SEND_HEADER,
     UNI_CAN_PROTOPLEXER_SEND_MSG_CANT_ADD_MESSAGE_CHUNKS,
     UNI_CAN_PROTOPLEXER_SEND_MSG_CANT_WRITE_HEADER,
+    UNI_CAN_PROTOPLEXER_SEND_MSG_INVALID_SIZE,
+    UNI_CAN_PROTOPLEXER_POLLING_TX_BUFFER_EMPTY,
+    UNI_CAN_PROTOPLEXER_POLLING_NEW_NO_NEW_MESSAGES,
+    UNI_CAN_PROTOPLEXER_POLLING_RX_HW_RX_EMPTY,
+    UNI_CAN_PROTOPLEXER_HW_SEND_TOO_MANY_ATTEMPTS,
+    UNI_CAN_PROTOPLEXER_HW_SEND_NON_RECOVERABLE,
 } uni_can_protoplexer_result_t;
 
 
@@ -72,11 +78,32 @@ typedef struct {
     uint8_t priority_inverted;
 
     uint16_t length;
-    uint8_t *data; // owned by this struct
+    // Owned by this struct when the message comes from uni_can_protoplexer_msg_create() or
+    // uni_can_protoplexer_add_chunk(). A message from uni_can_protoplexer_add_chunk_view()
+    // only points to its data.
+    uint8_t *data;
 } uni_can_protoplexer_msg_t;
 
 
-// Opaque RX state is stored inside ctx->rx as a private pointer.
+// Reassembly of one message. There is one per (from,to) pair with a message in progress.
+// Applications need the type only for the memory they give to uni_can_protoplexer_config_t.
+typedef struct {
+    bool in_use;
+    uint32_t channel_signature;
+
+    uint16_t expected_length;
+    uint16_t expected_crc;
+    uint16_t message_id;
+
+    uint16_t address_from;
+    uint16_t address_to;
+    uint8_t priority_inverted;
+
+    uint8_t *payload;
+    uint16_t payload_size;
+} uni_can_protoplexer_rx_buffer_t;
+
+// RX state is stored inside ctx->rx: an array of max_channels uni_can_protoplexer_rx_buffer_t.
 typedef struct {
     uint16_t own_address;
     uint16_t max_chunk_length;
@@ -84,6 +111,17 @@ typedef struct {
 
     uint16_t max_channels;
     void *rx;
+
+    uint16_t max_payload;
+    // Memory of the application, see uni_can_protoplexer_config_t; null when the heap is used.
+    uint8_t *rx_payload;
+    bool rx_static;
+    // The heap, when it is used. The protocol reaches it only through these, so that a program
+    // which gives all memory itself does not get the heap linked in.
+    void *(*rx_alloc)(size_t size);
+    void (*rx_free)(void *ptr);
+    // Reassembly whose message the last uni_can_protoplexer_add_chunk_view() gave out.
+    void *rx_view;
 } uni_can_protoplexer_ctx_t;
 
 typedef struct {
@@ -91,6 +129,16 @@ typedef struct {
     uint16_t max_chunk_length; // for CAN classic should be 8
     uint16_t max_channels;     // max concurrent in-progress (from,to) reassemblies
     bool monitoring;
+
+    // Longest message data that is received. A message that announces more is refused with
+    // UNI_CAN_PROTOPLEXER_ADDING_CHUNK_CANT_ALLOCATE_DATA. 0: no limit, with the heap only.
+    uint16_t max_payload;
+
+    // Memory for the reassemblies, for use without the heap: rx_buffers is an array of
+    // max_channels elements and rx_payload one of max_channels * max_payload bytes. Both have
+    // to stay valid while the context is in use. When rx_buffers is null the heap is used.
+    uni_can_protoplexer_rx_buffer_t *rx_buffers;
+    uint8_t *rx_payload;
 } uni_can_protoplexer_config_t;
 
 
@@ -125,6 +173,22 @@ void uni_can_protoplexer_msg_free(uni_can_protoplexer_msg_t *msg);
 bool uni_can_protoplexer_init(uni_can_protoplexer_ctx_t *ctx, const uni_can_protoplexer_config_t *cfg);
 void uni_can_protoplexer_deinit(uni_can_protoplexer_ctx_t *ctx);
 
+// The same for a configuration with memory of the application only: fails without rx_buffers.
+// A program that uses this one, uni_can_protoplexer_build_chunk() and
+// uni_can_protoplexer_add_chunk_view() does not need a heap.
+bool uni_can_protoplexer_init_static(uni_can_protoplexer_ctx_t *ctx, const uni_can_protoplexer_config_t *cfg);
+
+// Number of CAN chunks a message with `length` bytes of data is sent in.
+// Returns 0 when a chunk of max_chunk_length cannot hold the header.
+size_t uni_can_protoplexer_chunks_count(uint16_t length, uint16_t max_chunk_length);
+
+// Build one CAN chunk of a Protoplexer message, without using the heap.
+// chunk_index counts from 0 to uni_can_protoplexer_chunks_count() - 1.
+uni_can_protoplexer_result_t uni_can_protoplexer_build_chunk(const uni_can_protoplexer_msg_t *msg,
+                                                             uint16_t max_chunk_length,
+                                                             size_t chunk_index,
+                                                             uni_can_message_t *out_chunk);
+
 // Fragment a Protoplexer message into CAN chunks (each chunk is an uni_can_message_t).
 // Returned array must be freed with uni_can_protoplexer_free_chunks().
 uni_can_protoplexer_result_t uni_can_protoplexer_build_chunks(const uni_can_protoplexer_msg_t *msg,
@@ -138,6 +202,14 @@ void uni_can_protoplexer_free_chunks(uni_can_message_t *chunks);
 uni_can_protoplexer_result_t uni_can_protoplexer_add_chunk(uni_can_protoplexer_ctx_t *ctx,
                                                           const uni_can_message_t *chunk,
                                                           uni_can_protoplexer_msg_t **out_msg);
+
+// Add a received CAN chunk, without using the heap for the completed message. If a full Protoplexer
+// message is completed successfully, *out_complete is set and *out_msg describes it. Its data
+// belongs to the context and stays valid until the next chunk is added to this context.
+uni_can_protoplexer_result_t uni_can_protoplexer_add_chunk_view(uni_can_protoplexer_ctx_t *ctx,
+                                                               const uni_can_message_t *chunk,
+                                                               uni_can_protoplexer_msg_t *out_msg,
+                                                               bool *out_complete);
 
 
 #if defined(__cplusplus)

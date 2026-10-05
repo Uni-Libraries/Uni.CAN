@@ -66,22 +66,6 @@ uint16_t uni_can_protoplexer_crc16(const uint8_t *buf, uint32_t len) {
 // Internal RX buffer
 //
 
-typedef struct {
-    bool in_use;
-    uint32_t channel_signature;
-
-    uint16_t expected_length;
-    uint16_t expected_crc;
-    uint16_t message_id;
-
-    uint16_t address_from;
-    uint16_t address_to;
-    uint8_t priority_inverted;
-
-    uint8_t *payload;
-    uint16_t payload_size;
-} uni_can_protoplexer_rx_buffer_t;
-
 // The public ctx struct is declared in the header. Here we treat ctx->rx as
 // uni_can_protoplexer_rx_buffer_t*.
 
@@ -122,13 +106,38 @@ static uni_can_protoplexer_rx_buffer_t *uni_can_protoplexer_rx_get_or_alloc(uni_
     return NULL;
 }
 
-static void uni_can_protoplexer_rx_reset(uni_can_protoplexer_rx_buffer_t *b) {
+// Get memory for the data of a message. With memory of the application every reassembly has
+// its own part of it, max_payload bytes long.
+static bool uni_can_protoplexer_rx_payload_alloc(uni_can_protoplexer_ctx_t *ctx, uni_can_protoplexer_rx_buffer_t *b, uint16_t length) {
+    if ((ctx->max_payload != 0U || ctx->rx_static) && (length > ctx->max_payload)) {
+        return false;
+    }
+    if (length == 0U) {
+        return true;
+    }
+
+    if (ctx->rx_static) {
+        const size_t index = (size_t)(b - (uni_can_protoplexer_rx_buffer_t *)ctx->rx);
+        b->payload = &ctx->rx_payload[index * ctx->max_payload];
+    } else {
+        b->payload = (uint8_t *)ctx->rx_alloc(length);
+    }
+    return b->payload != NULL;
+}
+
+static void uni_can_protoplexer_rx_payload_free(const uni_can_protoplexer_ctx_t *ctx, uni_can_protoplexer_rx_buffer_t *b) {
+    if (!ctx->rx_static) {
+        ctx->rx_free(b->payload);
+    }
+    b->payload = NULL;
+    b->payload_size = 0;
+}
+
+static void uni_can_protoplexer_rx_reset(const uni_can_protoplexer_ctx_t *ctx, uni_can_protoplexer_rx_buffer_t *b) {
     if (!b) {
         return;
     }
-    free(b->payload);
-    b->payload = NULL;
-    b->payload_size = 0;
+    uni_can_protoplexer_rx_payload_free(ctx, b);
     b->expected_length = 0;
     b->expected_crc = 0;
     b->message_id = UNI_CAN_PROTOPLEXER_ERROR_ID;
@@ -137,11 +146,11 @@ static void uni_can_protoplexer_rx_reset(uni_can_protoplexer_rx_buffer_t *b) {
     b->priority_inverted = UNI_CAN_PROTOPLEXER_PRIORITY_MINIMAL;
 }
 
-static void uni_can_protoplexer_rx_release(uni_can_protoplexer_rx_buffer_t *b) {
+static void uni_can_protoplexer_rx_release(const uni_can_protoplexer_ctx_t *ctx, uni_can_protoplexer_rx_buffer_t *b) {
     if (!b) {
         return;
     }
-    uni_can_protoplexer_rx_reset(b);
+    uni_can_protoplexer_rx_reset(ctx, b);
     b->in_use = false;
     b->channel_signature = 0;
 }
@@ -151,7 +160,8 @@ static void uni_can_protoplexer_rx_release(uni_can_protoplexer_rx_buffer_t *b) {
 // Public API
 //
 
-bool uni_can_protoplexer_init(uni_can_protoplexer_ctx_t *ctx, const uni_can_protoplexer_config_t *cfg) {
+// Take over what does not depend on where the memory comes from.
+static bool uni_can_protoplexer_init_common(uni_can_protoplexer_ctx_t *ctx, const uni_can_protoplexer_config_t *cfg) {
     if (!ctx || !cfg) {
         return false;
     }
@@ -161,13 +171,45 @@ bool uni_can_protoplexer_init(uni_can_protoplexer_ctx_t *ctx, const uni_can_prot
     ctx->max_chunk_length = cfg->max_chunk_length;
     ctx->monitoring = cfg->monitoring;
     ctx->max_channels = cfg->max_channels;
+    ctx->max_payload = cfg->max_payload;
+
+    if (ctx->max_chunk_length < UNI_CAN_PROTOPLEXER_HEADER_SIZE || ctx->max_chunk_length > UNI_CAN_MESSAGE_MAXLEN) {
+        memset(ctx, 0, sizeof(*ctx));
+        return false;
+    }
+
+    return true;
+}
+
+bool uni_can_protoplexer_init_static(uni_can_protoplexer_ctx_t *ctx, const uni_can_protoplexer_config_t *cfg) {
+    if (!uni_can_protoplexer_init_common(ctx, cfg)) {
+        return false;
+    }
+
+    // memory of the application: its size is what the configuration says
+    if (!cfg->rx_buffers || ctx->max_channels == 0 || (ctx->max_payload != 0 && !cfg->rx_payload)) {
+        memset(ctx, 0, sizeof(*ctx));
+        return false;
+    }
+
+    memset(cfg->rx_buffers, 0, (size_t)ctx->max_channels * sizeof(uni_can_protoplexer_rx_buffer_t));
+    ctx->rx = cfg->rx_buffers;
+    ctx->rx_payload = cfg->rx_payload;
+    ctx->rx_static = true;
+    return true;
+}
+
+bool uni_can_protoplexer_init(uni_can_protoplexer_ctx_t *ctx, const uni_can_protoplexer_config_t *cfg) {
+    if (cfg && cfg->rx_buffers) {
+        return uni_can_protoplexer_init_static(ctx, cfg);
+    }
+
+    if (!uni_can_protoplexer_init_common(ctx, cfg)) {
+        return false;
+    }
 
     if (ctx->max_channels == 0) {
         ctx->max_channels = 16;
-    }
-
-    if (ctx->max_chunk_length < UNI_CAN_PROTOPLEXER_HEADER_SIZE || ctx->max_chunk_length > UNI_CAN_MESSAGE_MAXLEN) {
-        return false;
     }
 
     ctx->rx = calloc(ctx->max_channels, sizeof(uni_can_protoplexer_rx_buffer_t));
@@ -175,6 +217,8 @@ bool uni_can_protoplexer_init(uni_can_protoplexer_ctx_t *ctx, const uni_can_prot
         memset(ctx, 0, sizeof(*ctx));
         return false;
     }
+    ctx->rx_alloc = malloc;
+    ctx->rx_free = free;
 
     return true;
 }
@@ -187,10 +231,12 @@ void uni_can_protoplexer_deinit(uni_can_protoplexer_ctx_t *ctx) {
     if (rx) {
         for (uint16_t i = 0; i < ctx->max_channels; i++) {
             if (rx[i].in_use) {
-                uni_can_protoplexer_rx_release(&rx[i]);
+                uni_can_protoplexer_rx_release(ctx, &rx[i]);
             }
         }
-        free(rx);
+        if (!ctx->rx_static) {
+            ctx->rx_free(rx);
+        }
     }
     memset(ctx, 0, sizeof(*ctx));
 }
@@ -216,6 +262,12 @@ const char *uni_can_protoplexer_result_to_string(uni_can_protoplexer_result_t va
         case UNI_CAN_PROTOPLEXER_SEND_MSG_HW_CANT_SEND_HEADER: return "send_msg_hw_cant_send_header";
         case UNI_CAN_PROTOPLEXER_SEND_MSG_CANT_ADD_MESSAGE_CHUNKS: return "send_msg_cant_add_message_chunks";
         case UNI_CAN_PROTOPLEXER_SEND_MSG_CANT_WRITE_HEADER: return "send_msg_cant_write_header";
+        case UNI_CAN_PROTOPLEXER_SEND_MSG_INVALID_SIZE: return "send_msg_invalid_size";
+        case UNI_CAN_PROTOPLEXER_POLLING_TX_BUFFER_EMPTY: return "polling_tx_buffer_empty";
+        case UNI_CAN_PROTOPLEXER_POLLING_NEW_NO_NEW_MESSAGES: return "polling_new_no_new_messages";
+        case UNI_CAN_PROTOPLEXER_POLLING_RX_HW_RX_EMPTY: return "polling_rx_hw_rx_empty";
+        case UNI_CAN_PROTOPLEXER_HW_SEND_TOO_MANY_ATTEMPTS: return "hw_send_too_many_attempts";
+        case UNI_CAN_PROTOPLEXER_HW_SEND_NON_RECOVERABLE: return "hw_send_non_recoverable";
         default: return "unknown";
     }
 }
@@ -278,6 +330,78 @@ void uni_can_protoplexer_msg_free(uni_can_protoplexer_msg_t *msg) {
 }
 
 
+size_t uni_can_protoplexer_chunks_count(uint16_t length, uint16_t max_chunk_length) {
+    if (max_chunk_length < UNI_CAN_PROTOPLEXER_HEADER_SIZE || max_chunk_length > UNI_CAN_MESSAGE_MAXLEN) {
+        return 0;
+    }
+
+    // Total bytes = header + payload
+    const uint32_t total = (uint32_t)UNI_CAN_PROTOPLEXER_HEADER_SIZE + (uint32_t)length;
+    return (total + (max_chunk_length - 1U)) / max_chunk_length;
+}
+
+uni_can_protoplexer_result_t uni_can_protoplexer_build_chunk(const uni_can_protoplexer_msg_t *msg,
+                                                             uint16_t max_chunk_length,
+                                                             size_t chunk_index,
+                                                             uni_can_message_t *out_chunk) {
+    if (!msg || !out_chunk) {
+        return UNI_CAN_PROTOPLEXER_FAILURE;
+    }
+
+    const size_t chunks_count = uni_can_protoplexer_chunks_count(msg->length, max_chunk_length);
+    if (chunks_count == 0) {
+        return UNI_CAN_PROTOPLEXER_SEND_MSG_HW_CANT_SEND_HEADER;
+    }
+    if (chunk_index >= chunks_count) {
+        return UNI_CAN_PROTOPLEXER_FAILURE;
+    }
+    if (msg->length > 0 && !msg->data) {
+        return UNI_CAN_PROTOPLEXER_SEND_MSG_INVALID_SIZE;
+    }
+
+    const uint32_t total = (uint32_t)UNI_CAN_PROTOPLEXER_HEADER_SIZE + (uint32_t)msg->length;
+    const uint32_t cursor = (uint32_t)chunk_index * max_chunk_length; // cursor in header+payload stream
+    const uint32_t left = total - cursor;
+
+    uint16_t chunk_size = max_chunk_length;
+    if (left < max_chunk_length) {
+        chunk_size = (uint16_t)left;
+    }
+
+    uni_can_message_t *ch = out_chunk;
+    *ch = (uni_can_message_t){0};
+    ch->flags = UNI_CAN_MSG_FLAG_EXT_ID;
+    ch->len = chunk_size;
+
+    const bool is_first = (chunk_index == 0);
+    ch->id = uni_can_protoplexer_canid_create(msg->address_from, msg->address_to, msg->priority_inverted, is_first);
+
+    // Prepare header bytes: the header fits into the first chunk
+    uint8_t header[UNI_CAN_PROTOPLEXER_HEADER_SIZE] = {0};
+    if (is_first) {
+        const uint16_t crc = uni_can_protoplexer_crc16(msg->data, msg->length);
+        header[UNI_CAN_PROTOPLEXER_HEADER_ID_OFFSET] = (uint8_t)(msg->message_id & 0x00FFU);
+        header[UNI_CAN_PROTOPLEXER_HEADER_ID_OFFSET + 1] = (uint8_t)(msg->message_id >> 8U);
+        header[UNI_CAN_PROTOPLEXER_HEADER_LENGTH_OFFSET] = (uint8_t)(msg->length & 0x00FFU);
+        header[UNI_CAN_PROTOPLEXER_HEADER_LENGTH_OFFSET + 1] = (uint8_t)(msg->length >> 8U);
+        header[UNI_CAN_PROTOPLEXER_HEADER_CRC_OFFSET] = (uint8_t)(crc & 0x00FFU);
+        header[UNI_CAN_PROTOPLEXER_HEADER_CRC_OFFSET + 1] = (uint8_t)(crc >> 8U);
+    }
+
+    // Fill chunk bytes
+    for (uint16_t i = 0; i < chunk_size; i++) {
+        uint32_t pos = cursor + i;
+        if (pos < UNI_CAN_PROTOPLEXER_HEADER_SIZE) {
+            ch->data.u8[i] = header[pos];
+        } else {
+            uint32_t p = pos - UNI_CAN_PROTOPLEXER_HEADER_SIZE;
+            ch->data.u8[i] = msg->data[p];
+        }
+    }
+
+    return UNI_CAN_PROTOPLEXER_OK;
+}
+
 uni_can_protoplexer_result_t uni_can_protoplexer_build_chunks(const uni_can_protoplexer_msg_t *msg,
                                                               uint16_t max_chunk_length,
                                                               uni_can_message_t **out_chunks,
@@ -288,16 +412,9 @@ uni_can_protoplexer_result_t uni_can_protoplexer_build_chunks(const uni_can_prot
     *out_chunks = NULL;
     *out_count = 0;
 
-    if (max_chunk_length < UNI_CAN_PROTOPLEXER_HEADER_SIZE || max_chunk_length > UNI_CAN_MESSAGE_MAXLEN) {
-        return UNI_CAN_PROTOPLEXER_SEND_MSG_HW_CANT_SEND_HEADER;
-    }
-
-    // Total bytes = header + payload
-    const uint32_t total = (uint32_t)UNI_CAN_PROTOPLEXER_HEADER_SIZE + (uint32_t)msg->length;
-
-    size_t chunks_count = (total + (max_chunk_length - 1U)) / max_chunk_length;
+    const size_t chunks_count = uni_can_protoplexer_chunks_count(msg->length, max_chunk_length);
     if (chunks_count == 0) {
-        chunks_count = 1;
+        return UNI_CAN_PROTOPLEXER_SEND_MSG_HW_CANT_SEND_HEADER;
     }
 
     uni_can_message_t *chunks = (uni_can_message_t *)calloc(chunks_count, sizeof(uni_can_message_t));
@@ -305,45 +422,12 @@ uni_can_protoplexer_result_t uni_can_protoplexer_build_chunks(const uni_can_prot
         return UNI_CAN_PROTOPLEXER_SEND_MSG_CANT_ADD_MESSAGE_CHUNKS;
     }
 
-    // Prepare header bytes
-    uint8_t header[UNI_CAN_PROTOPLEXER_HEADER_SIZE];
-    const uint16_t crc = uni_can_protoplexer_crc16(msg->data, msg->length);
-    header[UNI_CAN_PROTOPLEXER_HEADER_ID_OFFSET] = (uint8_t)(msg->message_id & 0x00FFU);
-    header[UNI_CAN_PROTOPLEXER_HEADER_ID_OFFSET + 1] = (uint8_t)(msg->message_id >> 8U);
-    header[UNI_CAN_PROTOPLEXER_HEADER_LENGTH_OFFSET] = (uint8_t)(msg->length & 0x00FFU);
-    header[UNI_CAN_PROTOPLEXER_HEADER_LENGTH_OFFSET + 1] = (uint8_t)(msg->length >> 8U);
-    header[UNI_CAN_PROTOPLEXER_HEADER_CRC_OFFSET] = (uint8_t)(crc & 0x00FFU);
-    header[UNI_CAN_PROTOPLEXER_HEADER_CRC_OFFSET + 1] = (uint8_t)(crc >> 8U);
-
-    uint32_t left = total;
-    uint32_t cursor = 0; // cursor in header+payload stream
-
     for (size_t idx = 0; idx < chunks_count; idx++) {
-        uint16_t chunk_size = max_chunk_length;
-        if (left < max_chunk_length) {
-            chunk_size = (uint16_t)left;
+        const uni_can_protoplexer_result_t res = uni_can_protoplexer_build_chunk(msg, max_chunk_length, idx, &chunks[idx]);
+        if (res != UNI_CAN_PROTOPLEXER_OK) {
+            free(chunks);
+            return res;
         }
-
-        uni_can_message_t *ch = &chunks[idx];
-        ch->flags = UNI_CAN_MSG_FLAG_EXT_ID;
-        ch->len = chunk_size;
-
-        const bool is_first = (idx == 0);
-        ch->id = uni_can_protoplexer_canid_create(msg->address_from, msg->address_to, msg->priority_inverted, is_first);
-
-        // Fill chunk bytes
-        for (uint16_t i = 0; i < chunk_size; i++) {
-            uint32_t pos = cursor + i;
-            if (pos < UNI_CAN_PROTOPLEXER_HEADER_SIZE) {
-                ch->data.u8[i] = header[pos];
-            } else {
-                uint32_t p = pos - UNI_CAN_PROTOPLEXER_HEADER_SIZE;
-                ch->data.u8[i] = msg->data[p];
-            }
-        }
-
-        cursor += chunk_size;
-        left -= chunk_size;
     }
 
     *out_chunks = chunks;
@@ -356,15 +440,21 @@ void uni_can_protoplexer_free_chunks(uni_can_message_t *chunks) {
 }
 
 
-uni_can_protoplexer_result_t uni_can_protoplexer_add_chunk(uni_can_protoplexer_ctx_t *ctx,
-                                                          const uni_can_message_t *chunk,
-                                                          uni_can_protoplexer_msg_t **out_msg) {
-    if (out_msg) {
-        *out_msg = NULL;
+// Add a chunk to its reassembly. When it completes a message, *out_done is the reassembly that
+// holds it; the caller takes the message and releases the reassembly.
+static uni_can_protoplexer_result_t uni_can_protoplexer_rx_add_chunk(uni_can_protoplexer_ctx_t *ctx,
+                                                                    const uni_can_message_t *chunk,
+                                                                    uni_can_protoplexer_rx_buffer_t **out_done) {
+    *out_done = NULL;
+
+    if (!ctx || !ctx->rx || !chunk || chunk->len > UNI_CAN_MESSAGE_MAXLEN) {
+        return UNI_CAN_PROTOPLEXER_ADDING_CHUNK_INVALID_CHUNK;
     }
 
-    if (!ctx || !chunk) {
-        return UNI_CAN_PROTOPLEXER_ADDING_CHUNK_INVALID_CHUNK;
+    // the message that was given out as a view is gone with this call
+    if (ctx->rx_view) {
+        uni_can_protoplexer_rx_release(ctx, (uni_can_protoplexer_rx_buffer_t *)ctx->rx_view);
+        ctx->rx_view = NULL;
     }
 
     const uint16_t addr_to = uni_can_protoplexer_canid_get_to(chunk->id);
@@ -386,24 +476,24 @@ uni_can_protoplexer_result_t uni_can_protoplexer_add_chunk(uni_can_protoplexer_c
 
     // reset message if needed (header overwrite)
     if (is_first && (b->message_id != UNI_CAN_PROTOPLEXER_ERROR_ID)) {
-        uni_can_protoplexer_rx_reset(b);
+        uni_can_protoplexer_rx_reset(ctx, b);
     }
 
     // prepare msg in case of first chunk
     if (is_first) {
         if (chunk->len < UNI_CAN_PROTOPLEXER_CHUNK_STARTING_LENGTH_MIN) {
-            uni_can_protoplexer_rx_release(b);
+            uni_can_protoplexer_rx_release(ctx, b);
             return UNI_CAN_PROTOPLEXER_ADDING_CHUNK_FIRST_AND_TOO_SHORT;
         }
 
         if (!uni_can_protoplexer_address_valid(addr_to) || !uni_can_protoplexer_address_valid(addr_from)) {
             // match reference "setter" validation behaviour
-            uni_can_protoplexer_rx_release(b);
+            uni_can_protoplexer_rx_release(ctx, b);
             return UNI_CAN_PROTOPLEXER_WRONG_ADDRESS;
         }
 
         if (prio > UNI_CAN_PROTOPLEXER_PRIORITY_MINIMAL) {
-            uni_can_protoplexer_rx_release(b);
+            uni_can_protoplexer_rx_release(ctx, b);
             return UNI_CAN_PROTOPLEXER_WRONG_PRIORITY;
         }
 
@@ -417,21 +507,16 @@ uni_can_protoplexer_result_t uni_can_protoplexer_add_chunk(uni_can_protoplexer_c
                           (uint16_t)(chunk->data.u8[UNI_CAN_PROTOPLEXER_HEADER_CRC_OFFSET + 1] << 8U);
 
         if ((uint16_t)(chunk->len - UNI_CAN_PROTOPLEXER_HEADER_DATA_OFFSET) > b->expected_length) {
-            uni_can_protoplexer_rx_release(b);
+            uni_can_protoplexer_rx_release(ctx, b);
             return UNI_CAN_PROTOPLEXER_ADDING_CHUNK_HEADER_DATA_OVERFLOW;
         }
 
-        // allocate payload buffer (exact expected size)
-        free(b->payload);
-        b->payload = NULL;
-        b->payload_size = 0;
+        // get the payload buffer (exact expected size from the heap)
+        uni_can_protoplexer_rx_payload_free(ctx, b);
 
-        if (b->expected_length > 0) {
-            b->payload = (uint8_t *)malloc(b->expected_length);
-            if (!b->payload) {
-                uni_can_protoplexer_rx_release(b);
-                return UNI_CAN_PROTOPLEXER_ADDING_CHUNK_CANT_ALLOCATE_DATA;
-            }
+        if (!uni_can_protoplexer_rx_payload_alloc(ctx, b, b->expected_length)) {
+            uni_can_protoplexer_rx_release(ctx, b);
+            return UNI_CAN_PROTOPLEXER_ADDING_CHUNK_CANT_ALLOCATE_DATA;
         }
 
         // copy first chunk payload bytes (after header)
@@ -445,7 +530,7 @@ uni_can_protoplexer_result_t uni_can_protoplexer_add_chunk(uni_can_protoplexer_c
                         (uint16_t)(chunk->data.u8[UNI_CAN_PROTOPLEXER_HEADER_ID_OFFSET + 1] << 8U);
 
         if (b->message_id == UNI_CAN_PROTOPLEXER_ERROR_ID) {
-            uni_can_protoplexer_rx_release(b);
+            uni_can_protoplexer_rx_release(ctx, b);
             return UNI_CAN_PROTOPLEXER_ADDING_CHUNK_RECEIVED_ERROR_ID;
         }
     }
@@ -453,12 +538,12 @@ uni_can_protoplexer_result_t uni_can_protoplexer_add_chunk(uni_can_protoplexer_c
     // Handle data chunks
     if (!is_first) {
         if (b->message_id == UNI_CAN_PROTOPLEXER_ERROR_ID) {
-            uni_can_protoplexer_rx_release(b);
+            uni_can_protoplexer_rx_release(ctx, b);
             return UNI_CAN_PROTOPLEXER_ADDING_CHUNK_DATA_WITHOUT_HEADER;
         }
 
         if ((uint32_t)b->payload_size + (uint32_t)chunk->len > (uint32_t)b->expected_length) {
-            uni_can_protoplexer_rx_release(b);
+            uni_can_protoplexer_rx_release(ctx, b);
             return UNI_CAN_PROTOPLEXER_ADDING_CHUNK_DATA_OVERFLOW;
         }
 
@@ -476,18 +561,66 @@ uni_can_protoplexer_result_t uni_can_protoplexer_add_chunk(uni_can_protoplexer_c
             return UNI_CAN_PROTOPLEXER_ADDING_CHUNK_WRONG_CRC;
         }
 
+        *out_done = b;
+    }
+
+    return UNI_CAN_PROTOPLEXER_OK;
+}
+
+uni_can_protoplexer_result_t uni_can_protoplexer_add_chunk(uni_can_protoplexer_ctx_t *ctx,
+                                                          const uni_can_message_t *chunk,
+                                                          uni_can_protoplexer_msg_t **out_msg) {
+    if (out_msg) {
+        *out_msg = NULL;
+    }
+
+    uni_can_protoplexer_rx_buffer_t *b = NULL;
+    const uni_can_protoplexer_result_t res = uni_can_protoplexer_rx_add_chunk(ctx, chunk, &b);
+
+    if (b) {
         if (out_msg) {
             uni_can_protoplexer_msg_t *m = uni_can_protoplexer_msg_create(b->message_id, b->address_from, b->address_to,
                                                                           b->priority_inverted, b->payload, b->expected_length);
             if (!m) {
-                uni_can_protoplexer_rx_release(b);
+                uni_can_protoplexer_rx_release(ctx, b);
                 return UNI_CAN_PROTOPLEXER_ADDING_CHUNK_CANT_SAVE_MESSAGE;
             }
             *out_msg = m;
         }
 
-        uni_can_protoplexer_rx_release(b);
+        uni_can_protoplexer_rx_release(ctx, b);
     }
 
-    return UNI_CAN_PROTOPLEXER_OK;
+    return res;
+}
+
+uni_can_protoplexer_result_t uni_can_protoplexer_add_chunk_view(uni_can_protoplexer_ctx_t *ctx,
+                                                               const uni_can_message_t *chunk,
+                                                               uni_can_protoplexer_msg_t *out_msg,
+                                                               bool *out_complete) {
+    if (out_complete) {
+        *out_complete = false;
+    }
+
+    uni_can_protoplexer_rx_buffer_t *b = NULL;
+    const uni_can_protoplexer_result_t res = uni_can_protoplexer_rx_add_chunk(ctx, chunk, &b);
+
+    if (b) {
+        if (out_msg && out_complete) {
+            out_msg->message_id = b->message_id;
+            out_msg->address_from = b->address_from;
+            out_msg->address_to = b->address_to;
+            out_msg->priority_inverted = b->priority_inverted;
+            out_msg->length = b->expected_length;
+            out_msg->data = b->payload;
+            *out_complete = true;
+
+            // the data stays where it is until the next chunk comes
+            ctx->rx_view = b;
+        } else {
+            uni_can_protoplexer_rx_release(ctx, b);
+        }
+    }
+
+    return res;
 }
