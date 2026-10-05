@@ -12,6 +12,7 @@
 
 // protoplexer
 #include "uni_can_protoplexer.h"
+#include "uni_can_protoplexer_queue.h"
 
 // IMP
 #include "uni_can_protocol_imp.h"
