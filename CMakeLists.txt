@@ -5,9 +5,10 @@ cmake_minimum_required(VERSION 3.21)
 #
 
 # The channels of the adapters for a PC and the factory that finds them are written in C++ and
-# need threads. Everything else is C: messages, the channel functions and the protocols.
-# A firmware is built from that part alone.
-option(UNI_CAN_C_ONLY "Build only the parts written in C: no adapter backends, no factory, no C++ compiler" OFF)
+# need threads. Everything else is C: messages, the channel functions, the protocols and the
+# Uni.HAL backend. A firmware is built from that part alone.
+option(UNI_CAN_C_ONLY         "Build only the parts written in C: no adapter backends, no factory, no C++ compiler" OFF)
+option(UNI_CAN_BACKEND_UNIHAL "Build the backend for the CAN driver of Uni.HAL (needs the uni.hal target)"          OFF)
 
 if(UNI_CAN_C_ONLY)
     project(uni.can LANGUAGES C)
@@ -90,10 +91,21 @@ file(GLOB uni.can_SRCS CONFIGURE_DEPENDS "src/*.c")
 file(GLOB_RECURSE uni.can_HDRS CONFIGURE_DEPENDS "include/*.h" "include_private/*.h")
 target_sources(uni.can PRIVATE ${uni.can_SRCS} ${uni.can_HDRS})
 
-# ... and the adapter backends with their factory
+# ... the adapter backends with their factory ...
 if(NOT UNI_CAN_C_ONLY)
     file(GLOB_RECURSE uni.can_SRCS_CXX CONFIGURE_DEPENDS "src/*.cpp" "src/*.cc" "src/*.cxx")
     target_sources(uni.can PRIVATE ${uni.can_SRCS_CXX})
+endif()
+
+# ... and the Uni.HAL backend
+if(UNI_CAN_BACKEND_UNIHAL)
+    if(NOT TARGET uni.hal)
+        message(FATAL_ERROR "UNI_CAN_BACKEND_UNIHAL needs Uni.HAL: add it to the project before Uni.CAN")
+    endif()
+
+    file(GLOB uni.can_SRCS_UNIHAL CONFIGURE_DEPENDS "src/backend_unihal/*.c")
+    target_sources(uni.can PRIVATE ${uni.can_SRCS_UNIHAL})
+    target_link_libraries(uni.can PUBLIC uni.hal)
 endif()
 
 # includes
