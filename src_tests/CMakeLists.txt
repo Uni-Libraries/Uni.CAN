@@ -38,6 +38,8 @@ function(uni_can_add_test test_path)
 endfunction()
 
 
+uni_can_add_test(channel)
+
 uni_can_add_test(j1939)
 
 uni_can_add_test(protoplexer)

@@ -7,6 +7,7 @@
 
 // Uni.CAN
 #include "uni_can_factory.h"
+#include "can_channel_adapter.h"
 #include "can_provider.h"
 #include "backend_marathon/can_marathon_provider.h"
 #include "backend_ixxat/can_ixxat_provider.h"
@@ -133,7 +134,7 @@ void *uni_can_factory_create_channel(uni_can_devinfo_t *info, size_t channelidx,
 
         auto result = provider->CreateChannel(info, channelidx, baudrate);
         if (result) {
-            return result;
+            return Uni::CAN::CanChannelAdapt(result);
         }
     }
     return nullptr;
