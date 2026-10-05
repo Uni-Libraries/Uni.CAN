@@ -3,6 +3,7 @@
 //
 
 // stdlib
+#include <inttypes.h>
 #include <stdlib.h>
 
 // uni.can
@@ -46,5 +47,5 @@ void uni_can_message_free(uni_can_message_t *msg) {
 
 
 int uni_can_message_to_string(const uni_can_message_t *msg, char *buf, size_t buf_size) {
-    return snprintf(buf, buf_size, "id: %d, dlc: %d, data: TODO", msg->id, msg->len);
+    return snprintf(buf, buf_size, "id: %" PRIu32 ", dlc: %u, data: TODO", msg->id, (unsigned)msg->len);
 }
