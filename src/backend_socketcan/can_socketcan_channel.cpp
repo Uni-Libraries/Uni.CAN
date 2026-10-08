@@ -124,14 +124,28 @@ namespace Uni::CAN {
         // set nowait
         fcntl(_fd, F_SETFL, O_NONBLOCK);
 
+        // The descriptor that wakes the thread up exists before the thread does: a stop request made
+        // right after Open() would otherwise find nothing to write to and wait for the thread forever.
+        _thread_fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+        if (_thread_fd < 0) {
+            close(_fd);
+            _fd = -1;
+            return false;
+        }
+
         // start thread
         threadStart();
+        _thread_started = true;
 
         return true;
     }
 
     bool CanChannelSocketcan::Close() {
         threadStop();
+        if (_thread_fd >= 0) {
+            close(_thread_fd);
+            _thread_fd = -1;
+        }
         shutdown(_fd, SHUT_RDWR);
         close(_fd);
         _fd = -1;
@@ -147,7 +161,6 @@ namespace Uni::CAN {
 
     void CanChannelSocketcan::threadProc() {
         _time_start = std::chrono::steady_clock::now();
-        _thread_fd = eventfd(0, EFD_NONBLOCK);
         if(_thread_fd < 0){
             return;
         }
@@ -170,9 +183,6 @@ namespace Uni::CAN {
                 }
             }
         }
-
-        close(_thread_fd);
-        _thread_fd = -1;
     }
 
     bool CanChannelSocketcan::threadProcReceive()
@@ -222,10 +232,14 @@ namespace Uni::CAN {
     }
 
     bool CanChannelSocketcan::threadStop() {
-        if(_thread_fd>-1) {
+        // Also called by threadStart() before the thread exists: nothing to wake up then, and a
+        // value left in the descriptor would end the new thread at once.
+        if(_thread_started && _thread_fd>-1) {
             eventfd_write(_thread_fd, 1);
         }
-        return CanChannelBase::threadStop();
+        const bool result = CanChannelBase::threadStop();
+        _thread_started = false;
+        return result;
     }
 
 

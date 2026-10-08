@@ -33,7 +33,9 @@ namespace Uni::CAN {
         bool threadProcReceive();
         bool threadStop() override;
     private:
+        // Wakes the receive thread up for a stop; created in Open(), closed in Close().
         int _thread_fd = -1;
+        bool _thread_started = false;
 
     private:
         uint32_t _can_restart{100};
